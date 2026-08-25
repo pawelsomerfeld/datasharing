@@ -874,8 +874,9 @@ function renderResults(M){
       <textarea id="dump" readonly></textarea>
       <div class="row">
         <button class="btn" id="copy">Skopiuj JSON</button>
-        <a class="btn-ghost" id="dl" style="text-decoration:none; display:inline-block">Pobierz plik</a>
+        <button class="btn-ghost" id="dl">Pobierz plik</button>
         <button class="btn-ghost" id="again">Jeszcze raz</button>
+        <span class="small muted" id="dl-status"></span>
       </div>
     </div>
   </section>
@@ -912,9 +913,23 @@ function renderResults(M){
     catch { $("dump").select(); $("copy").textContent = "Zaznaczono — użyj Ctrl+C"; }
     setTimeout(()=>$("copy").textContent="Skopiuj JSON", 2200);
   });
-  const a = $("dl");
-  a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
-  a.download = `czytnik-${Date.now()}.json`;
+  /* Zapis pliku: na stronie opublikowanej przechodzi przez zgodę widza,
+     przy otwarciu z dysku — zwykłym linkiem blob.                        */
+  const fname = `czytnik-${Date.now()}.json`;
+  const say = t => { $("dl-status").textContent = t; setTimeout(()=>$("dl-status").textContent="", 4000); };
+  $("dl").addEventListener("click", async () => {
+    let ns = null;
+    try { ns = (typeof claude !== "undefined" && claude.use) ? await claude.use("downloads") : null; } catch {}
+    if (ns){
+      try { await ns.save({filename:fname, data:json}); say("Zapisano."); }
+      catch (e){ say(e && e.code === "declined" ? "Zapis anulowany." : "Zapis niedostępny — użyj „Skopiuj JSON”."); }
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
+    a.download = fname; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  });
   $("again").addEventListener("click", ()=>location.reload());
 
   drawTrace(M);
