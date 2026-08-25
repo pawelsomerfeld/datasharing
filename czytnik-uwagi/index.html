@@ -64,6 +64,11 @@ kbd{
 .lede{font-size:1.05rem; max-width:34rem; color:var(--ink-2)}
 .keylist{display:grid; grid-template-columns:auto 1fr; gap:var(--s3) var(--s4); align-items:baseline}
 .notice{border-left:3px solid var(--warn); background:var(--surface); padding:var(--s4) var(--s5); border-radius:0 3px 3px 0}
+.notice.bad{border-left-color:var(--crit)}
+#form-warning:empty{display:none}
+.radio-row{display:flex; gap:var(--s5); flex-wrap:wrap}
+.radio-row label{display:flex; gap:var(--s2); align-items:center; cursor:pointer}
+input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 
 /* ---------- stage ---------- */
 #stage{
@@ -141,7 +146,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.1</p>
+    <p class="eyebrow">Prototyp badawczy · v0.2</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -163,7 +168,7 @@ textarea{
       </div>
       <hr class="rule">
       <p class="small muted">
-        W kilku miejscach tekst celowo zamienia się w bezsens. Reaguj klawiszem <kbd>X</kbd>, kiedy to zauważysz —
+        W dziewięciu miejscach tekst celowo zamienia się w bezsens. Reaguj klawiszem <kbd>X</kbd>, kiedy to zauważysz —
         to nie podchwytliwe pytanie, tylko pomiar tego, czy czytasz z rozumieniem, czy tylko wodzisz oczami.
       </p>
     </div>
@@ -179,6 +184,15 @@ textarea{
       <p class="small"><strong>Nie zmieniaj kart ani okna.</strong> Jeśli to zrobisz, zostanie to zarejestrowane jako
         przerwa — to również jest wskaźnik, a nie oszustwo.</p>
     </div>
+  </section>
+
+  <section class="stack g4">
+    <h2>Zestaw tekstów</h2>
+    <div class="radio-row" id="form-pick"></div>
+    <p class="small muted" style="max-width:38rem">Formy są równoważne co do budowy i dziedziny tekstów.
+      Do badania powtórzonego użyj drugiej — inaczej badany będzie już wiedział, gdzie są linie bez sensu.
+      Przy większej próbie kontrbalansuj: połowa osób A&nbsp;→&nbsp;B, połowa B&nbsp;→&nbsp;A.</p>
+    <div id="form-warning"></div>
   </section>
 
   <section class="stack g4">
@@ -240,13 +254,24 @@ textarea{
    ===================================================================== */
 
 /* ---------- 1. MATERIAŁ BODŹCOWY -------------------------------------
-   Każdy tekst: 26 linii po 8–14 słów, styl popularnonaukowy, neutralny
-   emocjonalnie. Linie oznaczone `a:1` są semantycznie niespójne
-   (paradygmat wykrywania bezsensu, Schooler i in.).
-   `dist` – numery linii (1-based) z dystraktorem; `probe` – po których
-   liniach pojawia się sonda myśli.                                     */
+   Dwie formy równoległe po trzy teksty, 26 linii każdy. Formy są
+   dobrane parami pod względem dziedziny i budowy: ocean/geologia,
+   nawigacja zwierząt, historia technologii. Pozwala to na retest bez
+   efektu znajomości materiału i na kontrbalansowanie (połowa próby
+   A→B, połowa B→A).
 
-const PASSAGES = [
+   Linie `a:1` są gramatyczne, ale semantycznie absurdalne (paradygmat
+   wykrywania bezsensu). Po trzy na tekst — dziewięć na sesję, bo z
+   sześciu nie da się policzyć d′ o rzetelności nadającej się do retestu.
+
+   `dist`  – numery linii (1-based) z powiadomieniem
+   `probe` – po których liniach przerywa sonda myśli
+   Rozkład jest sprawdzany przy starcie przez validateForms(): anomalia
+   nie może wpaść w okno powrotu po dystraktorze ani na linię tuż po
+   sondzie, bo wtedy dwa pomiary mierzyłyby tę samą linię.            */
+
+const FORMS = {
+A: {label:"Forma A", passages:[
 {
   id:"baltyk", title:"Bałtyk", dist:[5,16], probe:[11,23],
   lines:[
@@ -262,7 +287,7 @@ const PASSAGES = [
     "Zasolenie spada wyraźnie w kierunku północno-wschodnim, ku Zatoce Botnickiej.",
     "W okolicach Zatoki Fińskiej woda jest już niemal słodka.",
     "Dlatego mieszkają tu obok siebie gatunki morskie i słodkowodne.",
-    "Wiele z nich żyje na granicy swojej fizjologicznej tolerancji.",
+    {t:"Gatunki graniczne zgłasza się do komisji przyznającej prawo pobytu w zatoce.", a:1},
     "Małże i ryby osiągają tutaj mniejsze rozmiary niż w Morzu Północnym.",
     "Odrębnym problemem są tak zwane strefy martwe przy dnie.",
     "Powstają, gdy nadmiar azotu i fosforu napędza masowe zakwity glonów.",
@@ -285,7 +310,7 @@ const PASSAGES = [
   ]
 },
 {
-  id:"pszczoly", title:"Nawigacja pszczół", dist:[8,21], probe:[9,25],
+  id:"pszczoly", title:"Nawigacja pszczół", dist:[5,18], probe:[12,25],
   lines:[
     "Pszczoła miodna potrafi wrócić do ula z odległości kilku kilometrów.",
     "Nie korzysta przy tym z żadnego pojedynczego, niezawodnego zmysłu.",
@@ -301,7 +326,7 @@ const PASSAGES = [
     "Pszczoła sumuje przebyte odcinki wraz z kierunkami, w jakich leciała.",
     "Dystans szacuje na podstawie tempa przesuwania się obrazu na siatkówce.",
     "Ten sam mechanizm daje się oszukać, prowadząc owada wzorzystym tunelem.",
-    "W eksperymentach pszczoły przeceniały wtedy przebytą odległość nawet kilkukrotnie.",
+    {t:"Oszukane pszczoły składają skargę, którą ul rozpatruje w terminie czternastu dni.", a:1},
     "Trzecim źródłem informacji jest zapamiętana panorama okolicy ula.",
     "W pobliżu celu owad porównuje bieżący widok z zapisanym wzorcem.",
     "Różnica między obrazami wskazuje mu, w którą stronę się przesunąć.",
@@ -322,7 +347,7 @@ const PASSAGES = [
   ]
 },
 {
-  id:"papier", title:"Historia papieru", dist:[3,14,22], probe:[13],
+  id:"papier", title:"Historia papieru", dist:[5,22], probe:[12,25],
   lines:[
     "Papier wynaleziono w Chinach na długo przed jego pojawieniem się w Europie.",
     "Tradycja przypisuje ten wynalazek urzędnikowi dworskiemu Cai Lunowi.",
@@ -338,8 +363,8 @@ const PASSAGES = [
     "Wprowadziły też klejenie żelatyną oraz znak wodny odciskany w sicie.",
     "Znak wodny pełnił funkcję sygnatury warsztatu i zabezpieczenia towaru.",
     "Dzięki niemu historycy potrafią dziś datować niepodpisane rękopisy.",
-    "Prawdziwy skok zapotrzebowania przyniósł druk z ruchomą czcionką.",
-    "Szmat zaczęło brakować, a ich wywóz obłożono gdzieniegdzie zakazem.",
+    {t:"Zapotrzebowanie na papier ustala się co kwartał, pytając o zdanie same arkusze.", a:1},
+    "Wraz z drukiem z ruchomą czcionką szmat zaczęło brakować, a ich wywóz obłożono zakazem.",
     "Surowca alternatywnego poszukiwano więc przez ponad sto lat.",
     "Rozwiązanie podsunęła obserwacja gniazd os budowanych z przeżutego drewna.",
     {t:"Osy udostępniły swoje patenty dopiero po długich negocjacjach z papiernikami.", a:1},
@@ -357,7 +382,123 @@ const PASSAGES = [
     {q:"Co podsunęło pomysł wyrobu papieru z drewna?", o:["Gniazda os","Kora brzozy","Chińskie receptury","Prace młynów w Fabriano"], c:0},
     {q:"Dlaczego dziewiętnastowieczne książki się kruszą?", o:["Bo drukowano je zbyt gęsto","Bo pozostałości kwasów niszczą włókna","Bo brakowało szmat","Bo nie miały znaku wodnego"], c:1}
   ]
-}];
+}]},
+
+B: {label:"Forma B", passages:[
+{
+  id:"zmarzlina", title:"Wieczna zmarzlina", dist:[5,17], probe:[9,20],
+  lines:[
+    "Wieczna zmarzlina to grunt, który pozostaje zamarznięty przez co najmniej dwa lata.",
+    "Pokrywa mniej więcej jedną piątą lądów półkuli północnej.",
+    "Jej miąższość sięga miejscami kilkuset metrów w głąb.",
+    "Na Syberii najgłębsze warstwy zamarzły kilkaset tysięcy lat temu.",
+    "Nad nimi leży warstwa czynna, która odmarza każdego lata.",
+    "To właśnie jej grubość decyduje o tym, co może na powierzchni rosnąć.",
+    "W ostatnich dekadach warstwa czynna wyraźnie się pogłębia.",
+    "Rozmarzający grunt traci nośność i zapada się nierównomiernie.",
+    "Powstają wtedy charakterystyczne zagłębienia zwane termokrasem.",
+    "Drogi, rurociągi i budynki na palach pękają razem z podłożem.",
+    {t:"Mieszkańcy wyrównują teren, prosząc zmarzlinę o powrót do dawnego kształtu.", a:1},
+    "Największy niepokój budzi jednak zawartość węgla w samej zmarzlinie.",
+    "Szacuje się, że jest go tam dwa razy więcej niż w całej atmosferze.",
+    {t:"Węgiel ten liczy się workami, a każdy worek ma osobny numer w rejestrze.", a:1},
+    "Materia organiczna leżała zamrożona i nierozłożona przez tysiąclecia.",
+    "Po odmarznięciu biorą się za nią bakterie i grzyby glebowe.",
+    "W gruncie natlenionym powstaje przede wszystkim dwutlenek węgla.",
+    "Tam, gdzie grunt jest podmokły, wydziela się głównie metan.",
+    "Metan utrzymuje się krótko, ale w tym czasie działa znacznie silniej.",
+    "Uwolniony gaz podnosi temperaturę, a ta odmraża kolejne warstwy gruntu.",
+    "Takiego sprzężenia zwrotnego trudno już potem zatrzymać.",
+    "Skala procesu pozostaje przedmiotem sporu między zespołami badawczymi.",
+    {t:"Spór rozstrzyga się co roku w drodze losowania spośród zgłoszonych hipotez.", a:1},
+    "Modele różnią się przede wszystkim tempem, a nie kierunkiem zmiany.",
+    "Pomiarów w terenie jest wciąż mało, bo stacje badawcze są kosztowne.",
+    "Arktyka ociepla się przy tym około trzy razy szybciej niż reszta planety."
+  ],
+  questions:[
+    {q:"Czym jest warstwa czynna?", o:["Najgłębsza warstwa zmarzliny","Grunt odmarzający każdego lata","Warstwa torfu nad zmarzliną","Strefa pomiarowa stacji badawczych"], c:1},
+    {q:"Ile węgla zawiera zmarzlina w porównaniu z atmosferą?", o:["Dziesięć razy mniej","Mniej więcej tyle samo","Dwa razy więcej","Sto razy więcej"], c:2},
+    {q:"Kiedy wydziela się głównie metan, a nie dwutlenek węgla?", o:["Gdy grunt jest podmokły","Gdy grunt jest natleniony","Zimą, pod śniegiem","Przy niskiej zawartości materii organicznej"], c:0},
+    {q:"Jak szybko ociepla się Arktyka na tle reszty planety?", o:["Tak samo szybko","Około dwa razy wolniej","Około trzy razy szybciej","Około dziesięć razy szybciej"], c:2}
+  ]
+},
+{
+  id:"wegorz", title:"Wędrówki węgorza", dist:[5,17], probe:[9,20],
+  lines:[
+    "Węgorz europejski rodzi się i ginie w Morzu Sargassowym.",
+    "Całą resztę życia spędza natomiast w rzekach i jeziorach Europy.",
+    "Larwy dryfują przez ocean wraz z prądami przez rok albo dłużej.",
+    "Mają wtedy postać przezroczystych listków, niepodobnych do dorosłych ryb.",
+    "Przy brzegach Europy przeobrażają się w tak zwane węgorze szkliste.",
+    "Wpływają w ujścia rzek i wędrują w górę ich biegu.",
+    "Potrafią pokonywać wilgotne przeszkody, pełznąc krótkie odcinki po lądzie.",
+    "W wodach słodkich spędzają od kilku do kilkunastu lat.",
+    "Dopiero potem zaczyna się przemiana przygotowująca do drogi powrotnej.",
+    "Oczy powiększają się, a barwnik siatkówki zmienia się na głębinowy.",
+    {t:"Węgorze zamawiają wtedy nowe oczy, płacąc za nie ikrą z zeszłego sezonu.", a:1},
+    "Przewód pokarmowy zanika, ponieważ w drodze ryba już nic nie je.",
+    "Cała podróż zasilana jest wyłącznie zgromadzonym wcześniej tłuszczem.",
+    {t:"Tłuszcz dzieli się równo między ryby na comiesięcznych zebraniach ławicy.", a:1},
+    "Nadajniki satelitarne pokazały, że węgorze płyną wolniej, niż zakładano.",
+    "W ciągu doby wykonują regularne wędrówki pionowe w toni wodnej.",
+    "Nocą trzymają się płycej, a za dnia schodzą na kilkaset metrów.",
+    "Tłumaczy się to unikaniem drapieżników i oszczędzaniem energii.",
+    "Nikt jednak nie zaobserwował dotąd tarła węgorza na wolności.",
+    "Wiedza o miejscu rozrodu opiera się na rozmieszczeniu najmniejszych larw.",
+    "Populacja europejska spadła od lat osiemdziesiątych o ponad dziewięćdziesiąt procent.",
+    "Odpowiadają za to zapory, utrata siedlisk, pasożyty i połowy.",
+    {t:"Ostatnie węgorze przeniesiono do muzeum, gdzie zwiedzający karmią je biletami.", a:1},
+    "Hodowla zamknięta wciąż się nie udaje, bo larw nie da się odchować.",
+    "Wszystkie hodowane węgorze pochodzą więc z odłowionych osobników szklistych.",
+    "Gatunek uznano za krytycznie zagrożony niecałe dwie dekady temu."
+  ],
+  questions:[
+    {q:"Gdzie węgorz europejski się rozmnaża?", o:["W górnym biegu rzek","W Morzu Sargassowym","W ujściach rzek","W jeziorach Skandynawii"], c:1},
+    {q:"Co dzieje się z przewodem pokarmowym przed wędrówką powrotną?", o:["Powiększa się","Zanika, bo ryba przestaje jeść","Wypełnia się tłuszczem","Nie zmienia się wcale"], c:1},
+    {q:"Jak węgorze zachowują się w ciągu doby?", o:["Nocą płycej, za dnia głębiej","Nocą głębiej, za dnia płycej","Cały czas przy dnie","Cały czas przy powierzchni"], c:0},
+    {q:"Dlaczego nie udaje się hodowla zamknięta?", o:["Bo dorosłe ryby nie przeżywają transportu","Bo larw nie da się odchować","Bo brakuje osobników szklistych","Bo woda słodka jest zbyt ciepła"], c:1}
+  ]
+},
+{
+  id:"szklo", title:"Historia szkła", dist:[5,17], probe:[9,20],
+  lines:[
+    "Szkło powstaje ze stopienia piasku kwarcowego w bardzo wysokiej temperaturze.",
+    "Czysty kwarc topi się dopiero powyżej tysiąca siedmiuset stopni.",
+    "Dodatek sody obniża tę temperaturę o kilkaset stopni.",
+    "Samo szkło sodowe rozpuszcza się jednak powoli w wodzie.",
+    "Dlatego dokłada się do niego wapno, które nadaje mu trwałość.",
+    "Najstarsze szklane paciorki pochodzą z Mezopotamii sprzed czterech tysięcy lat.",
+    "Przez długi czas szkło pozostawało materiałem rzadkim i kosztownym.",
+    "Naczynia formowano mozolnie wokół rdzenia z piasku i gliny.",
+    "Przełomem okazała się piszczel do wydmuchiwania, znana od pierwszego wieku.",
+    "Rzemieślnik mógł odtąd uformować naczynie w kilkadziesiąt sekund.",
+    {t:"Piszczel wynaleziono przypadkiem, gdy szkło samo poprosiło o więcej powietrza.", a:1},
+    "Szklane naczynia stały się w cesarstwie rzymskim towarem powszechnym.",
+    "Weneccy hutnicy przenieśli się w trzynastym wieku na wyspę Murano.",
+    {t:"Wyspę wybrano dlatego, że piasek układa się tam od razu w gotowe szyby.", a:1},
+    "Oficjalnym powodem była obawa przed pożarami w gęsto zabudowanym mieście.",
+    "Hutnikom nie wolno było opuszczać republiki pod groźbą surowych kar.",
+    "Na Murano opracowano cristallo, szkło niemal całkowicie bezbarwne.",
+    "Barwę usuwano, dodając związki manganu neutralizujące zielony odcień żelaza.",
+    "Tafle okienne długo wytwarzano, rozcinając i rozprostowując wydmuchane walce.",
+    "Widoczne na starych szybach smugi biorą się właśnie z tej metody.",
+    "Dopiero w połowie dwudziestego wieku opanowano wylewanie szkła na ciekłej cynie.",
+    "Tafla rozpływa się wtedy równomiernie i zastyga idealnie płaska.",
+    {t:"Cynę po każdej zmianie odsyła się na urlop, żeby odzyskała cierpliwość.", a:1},
+    "Metoda ta wyparła szlifowanie i polerowanie tafli niemal całkowicie.",
+    "Dzisiejsze szyby zawdzięczają jej swoją gładkość i niską cenę.",
+    "Ten sam skład sodowo-wapniowy stosuje się w zasadzie od starożytności."
+  ],
+  questions:[
+    {q:"Po co do szkła dodaje się wapno?", o:["Żeby obniżyć temperaturę topnienia","Żeby nie rozpuszczało się w wodzie","Żeby usunąć zielony odcień","Żeby dało się je wydmuchiwać"], c:1},
+    {q:"Co zmieniła piszczel do wydmuchiwania?", o:["Pozwoliła uformować naczynie w kilkadziesiąt sekund","Obniżyła temperaturę pieca","Umożliwiła barwienie szkła","Zastąpiła rdzeń z piasku i gliny w hutach Murano"], c:0},
+    {q:"Czym usuwano zielony odcień pochodzący od żelaza?", o:["Sodą","Wapnem","Związkami manganu","Cyną"], c:2},
+    {q:"Na czym wylewa się dziś taflę szkła?", o:["Na ciekłej cynie","Na polerowanej stali","Na piasku kwarcowym","Na wodzie"], c:0}
+  ]
+}]}
+};
+
+let PASSAGES = FORMS.A.passages;   // ustawiane przy starcie sesji
 
 const DISTRACTORS = [
   {app:"Kalendarz", body:"Spotkanie zespołu — za 10 minut"},
@@ -380,7 +521,7 @@ const PROBE_OPTS = [
 /* ---------- 2. STAN SESJI -------------------------------------------- */
 
 const S = {
-  t0:0, order:[], pi:0, li:0,
+  t0:0, form:"A", order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
   events:[],         // surowy log zdarzeń
   probes:[], quiz:[],
@@ -396,13 +537,73 @@ const isAnom   = l => typeof l === "object" && l.a === 1;
 
 /* ---------- 3. SILNIK ZADANIA ---------------------------------------- */
 
+/* Sprawdza, czy manipulacje nie nachodzą na siebie. Dwa zdarzenia na
+   jednej linii sprawiają, że ani jednego nie da się już policzyć.      */
+function validateForms(){
+  const bad = [];
+  const totals = [];
+  for (const [key, form] of Object.entries(FORMS)){
+    let total = 0;
+    for (const p of form.passages){
+      const n = p.lines.length, where = `${key}/${p.id}`;
+      total += n;
+      const anom = p.lines.map((l,i)=> isAnom(l) ? i+1 : 0).filter(Boolean);
+      const lag = new Set();                         // linia dystraktora + 3 kolejne
+      p.dist.forEach(d => [0,1,2,3].forEach(g => lag.add(d+g)));
+      const afterProbe = new Set(p.probe.map(x => x+1));
+
+      if (anom.length !== 3) bad.push(`${where}: ${anom.length} linii bez sensu zamiast 3`);
+      anom.forEach(a => {
+        if (lag.has(a)) bad.push(`${where}: bezsens w linii ${a} wpada w okno powrotu po powiadomieniu`);
+        if (afterProbe.has(a)) bad.push(`${where}: bezsens w linii ${a} wypada tuż po sondzie`);
+      });
+      p.dist.forEach(d => {
+        if (d < 1 || d > n) bad.push(`${where}: powiadomienie poza zakresem (${d})`);
+        if (afterProbe.has(d)) bad.push(`${where}: powiadomienie w linii ${d} wypada tuż po sondzie`);
+      });
+      p.probe.forEach(x => { if (x < 1 || x > n) bad.push(`${where}: sonda poza zakresem (${x})`); });
+      for (let i=1;i<anom.length;i++)
+        if (anom[i]-anom[i-1] < 3) bad.push(`${where}: bezsensy w liniach ${anom[i-1]} i ${anom[i]} stoją zbyt blisko`);
+      const ds = [...p.dist].sort((a,b)=>a-b);
+      for (let i=1;i<ds.length;i++)
+        if (ds[i]-ds[i-1] < 4) bad.push(`${where}: powiadomienia w liniach ${ds[i-1]} i ${ds[i]} stoją zbyt blisko`);
+      if (p.questions.length !== 4) bad.push(`${where}: ${p.questions.length} pytania zamiast 4`);
+    }
+    totals.push([key, total]);
+  }
+  if (new Set(totals.map(t=>t[1])).size > 1)
+    bad.push("formy mają różną liczbę linii: " + totals.map(t=>`${t[0]}=${t[1]}`).join(", "));
+  return bad;
+}
+
+function buildFormPicker(){
+  const box = $("form-pick");
+  Object.entries(FORMS).forEach(([key, form], i) => {
+    const id = "form-" + key;
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="form" id="${id}" value="${key}"${i?"":" checked"}>` +
+      `<span>${form.label} <span class="muted small">— ${form.passages.map(p=>p.title).join(", ")}</span></span>`;
+    box.appendChild(l);
+  });
+  const bad = validateForms();
+  if (bad.length){
+    $("form-warning").innerHTML = `<div class="notice bad stack g2"><p class="small"><strong>Materiał bodźcowy
+      jest źle rozłożony — wyniki będą niewiarygodne.</strong></p><ul class="small stack g2" style="margin:0; padding-left:1.1rem">` +
+      bad.map(b=>`<li>${b}</li>`).join("") + `</ul></div>`;
+    console.warn("validateForms():", bad);
+  }
+}
+buildFormPicker();
+
 $("ack").addEventListener("change", e => $("start").disabled = !e.target.checked);
 $("start").addEventListener("click", begin);
 
 function begin(){
   S.t0 = now();
-  S.order = $("short").checked ? [0] : [0,1,2];
-  log("session-start", {short:$("short").checked, screen:`${screen.width}x${screen.height}`});
+  S.form = document.querySelector('input[name="form"]:checked').value;
+  PASSAGES = FORMS[S.form].passages;
+  S.order = $("short").checked ? [0] : PASSAGES.map((_,i)=>i);
+  log("session-start", {form:S.form, short:$("short").checked, screen:`${screen.width}x${screen.height}`});
   buildLineIndex();
   $("intro").style.display = "none";
   $("stage").classList.add("on");
@@ -788,7 +989,7 @@ function renderResults(M){
 
   r.innerHTML = `
   <header class="stack g3">
-    <p class="eyebrow">Wynik sesji · ${new Date().toLocaleString("pl-PL")}</p>
+    <p class="eyebrow">${FORMS[S.form].label} · ${new Date().toLocaleString("pl-PL")}</p>
     <h1>Profil uwagi w czytaniu</h1>
     <p class="lede">${M.rows.length} linii · ${fmt(M.duration,1)} min · ${fmt(M.wpm,0)} słów/min ·
       rozumienie ${accPct}</p>
@@ -895,7 +1096,7 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.1", startedAt:new Date().toISOString(), ua:navigator.userAgent,
+    meta:{version:"0.2", form:S.form, startedAt:new Date().toISOString(), ua:navigator.userAgent,
           screen:`${screen.width}x${screen.height}`, short:$("short").checked},
     lines:S.lines.map((L,i)=>({...L, resid:Math.round(M.resid[i])})),
     probes:S.probes, quiz:S.quiz, events:S.events,

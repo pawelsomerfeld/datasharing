@@ -6,7 +6,7 @@ rozbieżność między tym skryptem a polem `metrics` w pliku JSON oznacza
 błąd po jednej ze stron i jest celowym mechanizmem kontrolnym.
 
     python3 score_session.py sesja.json              # jedna sesja
-    python3 score_session.py --norms katalog/        # percentyle z próby
+    python3 score_session.py --norms katalog/        # percentyle, osobno dla każdej formy
 
 Tylko biblioteka standardowa.
 """
@@ -17,8 +17,16 @@ import glob
 import json
 import math
 import os
+import signal
 import statistics as st
 import sys
+
+# Bez tego przepuszczenie wyniku przez `head` albo `less` kończy się
+# śladem stosu zamiast cichym urwaniem.
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except (AttributeError, ValueError):        # Windows nie ma SIGPIPE
+    pass
 
 MW_KEYS = {"mw-aware", "mw-unaware", "blank"}
 PREMATURE_MS_PER_CHAR = 12.0
@@ -125,6 +133,7 @@ def score(session):
 
     mu, sigma, tau = ex_gaussian(rt)
     out = {
+        "form": session.get("meta", {}).get("form", "?"),
         "n_lines": len(lines),
         "mu": mu, "sigma": sigma, "tau": tau,
         "cv": st.pstdev(res) / st.fmean(rt),
@@ -242,16 +251,28 @@ def main():
         if not files:
             sys.exit(f"brak plików .json w {args.path}")
         rows = [score(json.load(open(f, encoding="utf-8"))) for f in files]
-        print(f"# {len(rows)} sesji z {args.path}\n")
-        print(f"{'wskaźnik':<26}{'n':>4}{'P10':>10}{'P25':>10}{'mediana':>10}{'P75':>10}{'P90':>10}")
-        print("-" * 80)
-        for k in LABELS:
-            vals = sorted(r[k] for r in rows if isinstance(r.get(k), (int, float)))
-            if len(vals) < 2:
-                continue
-            q = lambda p: vals[min(len(vals) - 1, int(round(p * (len(vals) - 1))))]
-            print(f"{LABELS[k]:<26}{len(vals):>4}" +
-                  "".join(f"{show(q(p)):>10}" for p in (.10, .25, .50, .75, .90)))
+        by_form = {}
+        for r in rows:
+            by_form.setdefault(r["form"], []).append(r)
+
+        # Normy liczy się osobno dla każdej formy. Zlanie ich w jedną tabelę
+        # zakłada równoważność form, której nikt jeszcze nie wykazał.
+        print(f"# {len(rows)} sesji z {args.path}")
+        if len(by_form) > 1:
+            print("# formy rozdzielone: " + ", ".join(f"{k}={len(v)}" for k, v in sorted(by_form.items())))
+        for form, group in sorted(by_form.items()):
+            print(f"\n## Forma {form} — {len(group)} sesji")
+            if len(group) < 30:
+                print("   (próba za mała na normy; percentyle wyłącznie poglądowe)")
+            print(f"{'wskaźnik':<26}{'n':>4}{'P10':>10}{'P25':>10}{'mediana':>10}{'P75':>10}{'P90':>10}")
+            print("-" * 80)
+            for k in LABELS:
+                vals = sorted(r[k] for r in group if isinstance(r.get(k), (int, float)))
+                if len(vals) < 2:
+                    continue
+                q = lambda p: vals[min(len(vals) - 1, int(round(p * (len(vals) - 1))))]
+                print(f"{LABELS[k]:<26}{len(vals):>4}" +
+                      "".join(f"{show(q(p)):>10}" for p in (.10, .25, .50, .75, .90)))
         return
 
     sess = json.load(open(args.path, encoding="utf-8"))
@@ -259,7 +280,7 @@ def main():
     if args.json:
         print(json.dumps(mine, ensure_ascii=False, indent=2))
         return
-    print(f"# {args.path}\n")
+    print(f"# {args.path}  ·  forma {mine['form']}\n")
     for k, lab in LABELS.items():
         print(f"{lab:<26}{show(mine.get(k)):>14}")
     bad = check_against_browser(sess, mine)

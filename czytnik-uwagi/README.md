@@ -42,12 +42,26 @@ Trzy teksty popularnonaukowe po 26 linii. Prezentacja **samosterowana, jedna lin
 naraz** (self-paced reading, wariant niekumulacyjny) — badany sam decyduje, kiedy
 przejść dalej, więc czas linii to czysty czas przetwarzania.
 
+Materiał istnieje w **dwóch formach równoległych**, dobranych parami co do dziedziny
+i budowy:
+
+| | Forma A | Forma B |
+|---|---|---|
+| ocean / geologia | Bałtyk | Wieczna zmarzlina |
+| nawigacja zwierząt | Nawigacja pszczół | Wędrówki węgorza |
+| historia technologii | Historia papieru | Historia szkła |
+
+Obie mają po 78 linii, 9 linii bez sensu, 6 powiadomień, 6 sond i 12 pytań;
+średnia długość linii to 70 i 67 znaków. Bez drugiej formy retest jest niewykonalny —
+osoba, która przeszła sesję raz, wie już, gdzie są linie absurdalne. Przy większej
+próbie warto kontrbalansować: połowa badanych A→B, połowa B→A.
+
 W tekst wplecione są cztery niezależne kanały pomiarowe:
 
 | Kanał | Mechanika | Co mierzy |
 |---|---|---|
 | **Czas linii** | spacja przewija dalej | zmienność uwagi w czasie |
-| **Linie bez sensu** | 2 na tekst, gramatyczne ale semantycznie absurdalne; reakcja klawiszem `X` | czy tekst jest przetwarzany, czy tylko przewijany |
+| **Linie bez sensu** | 3 na tekst, gramatyczne ale semantycznie absurdalne; reakcja klawiszem `X` | czy tekst jest przetwarzany, czy tylko przewijany |
 | **Sondy myśli** | przerwanie z pytaniem „gdzie był Twój umysł?", 5 opcji | samoopis odpływania, do skonfrontowania z czasami |
 | **Dystraktory** | atrapy powiadomień systemowych w rogu ekranu | koszt zakłócenia i tempo powrotu |
 
@@ -78,7 +92,10 @@ faluje. Traktuj jako przybliżenie: próbkowanie jest z natury nierównomierne (
 linie mają różne czasy trwania), więc odstępy zastępujemy średnim czasem linii.
 To wystarcza do porównań między badanymi, ale nie jest estymatorem widma.
 
-**d′ wykrywania bezsensu** — teoria detekcji sygnału na liniach absurdalnych.
+**d′ wykrywania bezsensu** — teoria detekcji sygnału na dziewięciu liniach absurdalnych
+w sesji. Sześć, jak było w pierwszej wersji, nie wystarcza do rzetelności nadającej się
+do retestu; dziewięć to kompromis — przy większym zagęszczeniu zadanie przestaje być
+czytaniem, a staje się polowaniem na absurdy, co zmienia samo zachowanie, które mierzymy.
 Trafienie liczy się też, gdy reakcja padła jedną linię później (typowe: badany
 przechodzi dalej, po czym się orientuje); taka linia jest wtedy wyłączona z puli
 fałszywych alarmów. Niskie d′ **przy szybkim tempie** jest sygnałem czytania bez
@@ -91,6 +108,24 @@ to, co badany zaraz zaraportował. Jest to pojedynczy najważniejszy wynik w ca�
 narzędziu: sprawdza, czy pomiar w ogóle łapie to zjawisko, o które nam chodzi,
 **w obrębie jednej osoby**, bez potrzeby grupy kontrolnej.
 
+## Rozkład zdarzeń jest sprawdzany automatycznie
+
+Manipulacje nie mogą na siebie nachodzić: linia bez sensu, która wypada w oknie powrotu
+po powiadomieniu albo tuż po sondzie, jest stracona dla obu pomiarów naraz — jej czas
+odzwierciedla wtedy zakłócenie, a nie wykrywanie absurdu.
+
+Przy każdym uruchomieniu `validateForms()` sprawdza cały materiał i wypisuje zastrzeżenia
+na ekranie wstępnym oraz w konsoli:
+
+- bezsens w oknie `[d, d+3]` po powiadomieniu w linii `d`
+- bezsens albo powiadomienie na linii bezpośrednio po sondzie
+- dwa bezsensy bliżej niż 3 linie od siebie, dwa powiadomienia bliżej niż 4
+- indeksy poza zakresem tekstu, zła liczba bezsensów lub pytań
+- różna łączna liczba linii między formami
+
+Jeśli dopisujesz własne teksty do `FORMS`, to jest siatka bezpieczeństwa — źle
+rozłożony materiał psuje wyniki po cichu, bez żadnego objawu w interfejsie.
+
 ## Progi w panelu wyników są tymczasowe
 
 Etykiety „w normie orientacyjnej / podwyższone / wyraźnie podwyższone" opierają się
@@ -101,9 +136,13 @@ Do tego służy tryb `--norms`:
 
 ```bash
 python3 analysis/score_session.py sesja.json          # jedna sesja + kontrola zgodności
-python3 analysis/score_session.py --norms katalog/    # P10/P25/mediana/P75/P90 z próby
+python3 analysis/score_session.py --norms katalog/    # percentyle, osobno dla każdej formy
 python3 analysis/score_session.py sesja.json --json   # do dalszej obróbki
 ```
+
+Tryb `--norms` rozdziela sesje według formy i liczy percentyle osobno dla każdej.
+Zlanie ich w jedną tabelę zakładałoby równoważność form, której nikt jeszcze nie wykazał —
+to jest właśnie jedna z rzeczy do sprawdzenia w badaniu normalizacyjnym.
 
 Skrypt to **niezależna implementacja tych samych wzorów** co w przeglądarce. Po
 przeliczeniu porównuje wynik z polem `metrics` w pliku JSON i wypisuje `OK` albo listę
@@ -115,9 +154,11 @@ wieku i wykształcenia, plus osobno grupa z rozpoznaniem postawionym niezależni
 
 ## Plan walidacji, gdyby to miało być czymś więcej niż demem
 
-1. **Rzetelność** — retest po 2–4 tygodniach na 30 osobach. τ i współczynnik
-   zmienności powinny dać ICC powyżej 0,7. Wskaźniki oparte na 6 zdarzeniach
-   (d′, koszt dystraktora) prawdopodobnie nie dadzą i będą wymagały dłuższej wersji.
+1. **Rzetelność i równoważność form** — retest po 2–4 tygodniach na 30 osobach,
+   forma A na pierwszym pomiarze u połowy i forma B u drugiej połowy. Daje to naraz
+   dwie rzeczy: ICC dla stabilności (τ i współczynnik zmienności powinny przekroczyć 0,7)
+   oraz sprawdzenie, czy formy dają zgodne wyniki. Jeśli nie dają, normy muszą
+   zostać osobne — dlatego `--norms` od razu je rozdziela.
 2. **Trafność zbieżna** — korelacja z Conners CPT 3 (zwłaszcza HRT SE i wariancja),
    z ASRS i z BAARS-IV. Oczekiwane wartości umiarkowane, 0,3–0,5; wyższe byłyby
    podejrzane.
@@ -140,9 +181,11 @@ a nie cechę osoby. Rozpoznanie ADHD wymaga wywiadu wobec kryteriów DSM-5 lub I
 danych z co najmniej dwóch środowisk i potwierdzenia objawów w okresie rozwojowym —
 żadnej z tych rzeczy komputer nie zastąpi.
 
-Osobne ryzyko: teksty są jawne. Osoba, która przeszła sesję raz, wie, gdzie są linie
-absurdalne. Do retestu potrzeba równoległych zestawów tekstów — struktura pliku na to
-pozwala, wystarczy dopisać kolejne pozycje do tablicy `PASSAGES`.
+Osobne ryzyko: teksty są jawne. Dwie formy wystarczają na jeden retest, ale nie na
+serię pomiarów — przy trzecim podejściu badany zna już oba zestawy. Kolejne formy
+dopisuje się do obiektu `FORMS`; walidator sprawdzi rozkład, ale nie sprawdzi za Ciebie,
+czy pytania nie opierają się na liniach absurdalnych ani czy teksty są porównywalnie
+trudne.
 
 Zadanie zakłada sprawne czytanie w języku polskim. U osoby z dysleksją albo czytającej
 w drugim języku wskaźniki oparte na czasie będą zawyżone z powodów niemających
