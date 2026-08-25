@@ -1,0 +1,994 @@
+<title>Czytnik Uwagi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
+<style>
+:root{
+  --bg:#eceff0; --surface:#f7f9f9; --surface-2:#e3e8e7; --ink:#14211f; --ink-2:#4d5f5c;
+  --line:#c6d1cf; --signal:#0d6d68; --signal-soft:#d6eae8; --warn:#8f6410; --crit:#9b3d29;
+  --shadow:0 1px 2px rgba(20,33,31,.06),0 8px 24px rgba(20,33,31,.05);
+  --stage-bg:#0c1413; --stage-ink:#e8eeec; --stage-dim:#7d918d; --stage-sig:#4fd6c4;
+  --s1:.25rem; --s2:.5rem; --s3:.75rem; --s4:1rem; --s5:1.5rem; --s6:2rem; --s7:3rem; --s8:4.5rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1514; --surface:#131e1d; --surface-2:#1c2827; --ink:#e4ecea; --ink-2:#93a5a2;
+    --line:#2a3937; --signal:#4fd6c4; --signal-soft:#16302e; --warn:#d9a441; --crit:#e08163;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1514; --surface:#131e1d; --surface-2:#1c2827; --ink:#e4ecea; --ink-2:#93a5a2;
+  --line:#2a3937; --signal:#4fd6c4; --signal-soft:#16302e; --warn:#d9a441; --crit:#e08163;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{text-wrap:balance; margin:0; line-height:1.2; font-weight:600; letter-spacing:-.01em}
+h1{font-size:1.95rem} h2{font-size:1.25rem} h3{font-size:1rem}
+p{margin:0}
+a{color:var(--signal)}
+.wrap{max-width:62rem; margin:0 auto; padding:var(--s7) var(--s5) var(--s8)}
+.eyebrow{
+  font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-2); font-weight:500; font-family:"IBM Plex Mono",monospace;
+}
+.stack{display:flex; flex-direction:column}
+.g2{gap:var(--s2)} .g3{gap:var(--s3)} .g4{gap:var(--s4)} .g5{gap:var(--s5)} .g6{gap:var(--s6)} .g7{gap:var(--s7)}
+.muted{color:var(--ink-2)}
+.small{font-size:.85rem}
+.mono{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:var(--s5); box-shadow:var(--shadow)}
+.rule{height:1px; background:var(--line); border:0; margin:0}
+
+/* ---------- controls ---------- */
+button{font:inherit; cursor:pointer; border-radius:2px; transition:background .12s,border-color .12s}
+.btn{background:var(--signal); color:var(--bg); border:1px solid var(--signal); padding:.6rem 1.4rem; font-weight:500}
+.btn:hover{filter:brightness(1.12)}
+.btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line); padding:.6rem 1.1rem}
+.btn-ghost:hover{background:var(--surface-2)}
+:focus-visible{outline:2px solid var(--signal); outline-offset:2px}
+label.check{display:flex; gap:var(--s3); align-items:flex-start; cursor:pointer}
+input[type=checkbox]{margin-top:.3rem; accent-color:var(--signal); width:1rem; height:1rem}
+kbd{
+  font-family:"IBM Plex Mono",monospace; font-size:.78rem; background:var(--surface-2);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:3px; padding:.1rem .4rem; color:var(--ink);
+}
+
+/* ---------- intro ---------- */
+.hero-title{font-size:clamp(2rem,5vw,3rem); letter-spacing:-.025em}
+.lede{font-size:1.05rem; max-width:34rem; color:var(--ink-2)}
+.keylist{display:grid; grid-template-columns:auto 1fr; gap:var(--s3) var(--s4); align-items:baseline}
+.notice{border-left:3px solid var(--warn); background:var(--surface); padding:var(--s4) var(--s5); border-radius:0 3px 3px 0}
+
+/* ---------- stage ---------- */
+#stage{
+  position:fixed; inset:0; background:var(--stage-bg); color:var(--stage-ink);
+  display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50;
+}
+#stage.on{display:flex}
+.stage-line{
+  font-family:Literata,Georgia,"Times New Roman",serif; font-size:clamp(1.1rem,2.6vw,1.5rem);
+  line-height:1.6; max-width:34em; padding:0 var(--s6); text-align:left; min-height:4.8em;
+  display:flex; align-items:center;
+}
+.stage-foot{
+  position:fixed; bottom:0; left:0; right:0; padding:var(--s4) var(--s5);
+  display:flex; justify-content:space-between; gap:var(--s4);
+  font-size:.75rem; color:var(--stage-dim); font-family:"IBM Plex Mono",monospace;
+}
+.stage-foot kbd{background:#182422; border-color:#2c3b39; color:var(--stage-dim)}
+#progress{position:fixed; top:0; left:0; height:2px; background:var(--stage-sig); width:0; transition:width .18s}
+.flash{animation:flash .45s ease-out}
+@keyframes flash{0%{color:var(--stage-sig)}100%{color:var(--stage-ink)}}
+
+/* ---------- distractor toast ---------- */
+#toast{
+  position:fixed; right:1.5rem; bottom:4.5rem; width:19rem; background:#1b2a28; color:#dfe8e6;
+  border:1px solid #2f403d; border-radius:6px; padding:.8rem .9rem; display:none; cursor:pointer;
+  box-shadow:0 10px 30px rgba(0,0,0,.45); z-index:60; text-align:left;
+}
+#toast.on{display:block; animation:slidein .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes slidein{from{transform:translateX(120%)}to{transform:none}}
+#toast .t-app{font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:#8fa5a1; font-family:"IBM Plex Mono",monospace}
+#toast .t-body{font-size:.88rem; margin-top:.2rem}
+
+/* ---------- overlays: probe & quiz ---------- */
+.overlay{position:fixed; inset:0; background:var(--stage-bg); color:var(--stage-ink); display:none; z-index:70; overflow-y:auto}
+.overlay.on{display:flex; align-items:center; justify-content:center; padding:var(--s5)}
+.opt{
+  display:flex; gap:var(--s4); align-items:baseline; width:100%; text-align:left;
+  background:#141f1e; border:1px solid #2b3937; color:var(--stage-ink); padding:.75rem 1rem; font:inherit;
+}
+.opt:hover{background:#1d2b29; border-color:var(--stage-sig)}
+.opt .k{font-family:"IBM Plex Mono",monospace; color:var(--stage-sig); font-size:.85rem; flex:none; width:1.2rem}
+
+/* ---------- results ---------- */
+.metrics{display:grid; grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line)}
+.metric{background:var(--surface); padding:var(--s4) var(--s5); display:flex; flex-direction:column; gap:.15rem}
+.metric .m-label{font-size:.75rem; letter-spacing:.02em; color:var(--ink-2); font-family:"IBM Plex Mono",monospace}
+.metric .m-val{font-family:"IBM Plex Mono",monospace; font-size:1.55rem; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.metric .m-val.sm{font-size:1.05rem; line-height:1.4}
+.metric .m-note{font-size:.78rem; color:var(--ink-2)}
+.metric .m-unit{font-size:.9rem; color:var(--ink-2); font-weight:400}
+.pill{
+  align-self:flex-start; font-size:.68rem; font-family:"IBM Plex Mono",monospace; letter-spacing:.07em;
+  text-transform:uppercase; padding:.1rem .45rem; border-radius:2px; margin-top:.25rem;
+}
+.pill.ok{background:var(--signal-soft); color:var(--signal)}
+.pill.mid{background:color-mix(in srgb,var(--warn) 16%,transparent); color:var(--warn)}
+.pill.hi{background:color-mix(in srgb,var(--crit) 16%,transparent); color:var(--crit)}
+.chart-box{overflow-x:auto}
+canvas{display:block; max-width:100%}
+.legend{display:flex; flex-wrap:wrap; gap:var(--s4); font-size:.78rem; color:var(--ink-2)}
+.legend i{display:inline-block; width:.8rem; height:.8rem; margin-right:.35rem; vertical-align:-1px; border-radius:1px}
+table{border-collapse:collapse; width:100%; font-size:.88rem}
+th,td{text-align:left; padding:.45rem .7rem; border-bottom:1px solid var(--line)}
+th{font-size:.7rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-2); font-weight:500; font-family:"IBM Plex Mono",monospace}
+td.num{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+textarea{
+  width:100%; height:11rem; font-family:"IBM Plex Mono",monospace; font-size:.72rem; background:var(--surface-2);
+  color:var(--ink); border:1px solid var(--line); border-radius:3px; padding:var(--s3); resize:vertical;
+}
+.row{display:flex; gap:var(--s3); flex-wrap:wrap; align-items:center}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<!-- ============ 1. WPROWADZENIE ============ -->
+<main id="intro" class="wrap stack g7">
+  <header class="stack g4">
+    <p class="eyebrow">Prototyp badawczy · v0.1</p>
+    <h1 class="hero-title">Czytnik Uwagi</h1>
+    <p class="lede">
+      Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
+      mierzy, co robi Twoja uwaga w trakcie zwykłego czytania — linia po linii, w milisekundach.
+    </p>
+  </header>
+
+  <section class="stack g4">
+    <h2>Jak to wygląda</h2>
+    <p class="muted" style="max-width:38rem">
+      Trzy popularnonaukowe teksty, po 26 linii każdy. Widzisz zawsze jedną linię naraz i sam decydujesz,
+      kiedy przejść dalej. Po każdym tekście — cztery pytania o treść. Całość: 12–18 minut.
+    </p>
+    <div class="card stack g4">
+      <div class="keylist">
+        <kbd>Spacja</kbd><span>następna linia</span>
+        <kbd>←</kbd><span>powrót do poprzedniej linii (jeśli poczujesz, że coś Ci umknęło)</span>
+        <kbd>X</kbd><span>ta linia nie ma sensu / nie pasuje do tekstu</span>
+      </div>
+      <hr class="rule">
+      <p class="small muted">
+        W kilku miejscach tekst celowo zamienia się w bezsens. Reaguj klawiszem <kbd>X</kbd>, kiedy to zauważysz —
+        to nie podchwytliwe pytanie, tylko pomiar tego, czy czytasz z rozumieniem, czy tylko wodzisz oczami.
+      </p>
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <h2>Zanim zaczniesz</h2>
+    <div class="notice stack g3">
+      <p class="small"><strong>Powiadomienia są częścią badania.</strong> W trakcie czytania w rogu ekranu pojawią się
+        atrapy powiadomień. Nie klikaj ich i czytaj dalej — mierzymy, ile kosztuje Cię ich zignorowanie.</p>
+      <p class="small"><strong>Pytania o myśli.</strong> Kilka razy czytanie przerwie pytanie o to, gdzie właśnie był
+        Twój umysł. Odpowiadaj szczerze — „myślałem o czymś innym" jest tu poprawną i użyteczną odpowiedzią.</p>
+      <p class="small"><strong>Nie zmieniaj kart ani okna.</strong> Jeśli to zrobisz, zostanie to zarejestrowane jako
+        przerwa — to również jest wskaźnik, a nie oszustwo.</p>
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <label class="check"><input type="checkbox" id="ack">
+      <span class="small">Rozumiem, że to <strong>prototyp badawczy, a nie test diagnostyczny</strong>. Wynik nie
+      rozstrzyga o obecności ani braku ADHD i nie zastępuje diagnozy klinicznej. Dane nie opuszczają tej przeglądarki.</span></label>
+    <label class="check"><input type="checkbox" id="short">
+      <span class="small">Tryb skrócony — tylko pierwszy tekst (≈5 minut). Przydatny do zapoznania się z procedurą.</span></label>
+    <div class="row">
+      <button class="btn" id="start" disabled>Rozpocznij</button>
+      <span class="small muted">Potrzebna klawiatura fizyczna.</span>
+    </div>
+  </section>
+</main>
+
+<!-- ============ 2. SCENA CZYTANIA ============ -->
+<div id="stage">
+  <div id="progress"></div>
+  <div class="stage-line" id="line"></div>
+  <div class="stage-foot">
+    <span id="foot-left"></span>
+    <span><kbd>Spacja</kbd> dalej &nbsp; <kbd>←</kbd> wstecz &nbsp; <kbd>X</kbd> bez sensu</span>
+  </div>
+</div>
+<div id="toast" role="alert"><div class="t-app" id="t-app"></div><div class="t-body" id="t-body"></div></div>
+
+<!-- ============ 3. SONDA MYŚLI ============ -->
+<div class="overlay" id="probe">
+  <div class="stack g5" style="max-width:34rem; width:100%">
+    <div class="stack g2">
+      <p class="eyebrow" style="color:var(--stage-sig)">Sonda</p>
+      <h2>Gdzie był Twój umysł tuż przed tym pytaniem?</h2>
+    </div>
+    <div class="stack g2" id="probe-opts"></div>
+    <p class="small" style="color:var(--stage-dim)">Wybierz myszą albo klawiszem 1–5.</p>
+  </div>
+</div>
+
+<!-- ============ 4. PYTANIA O TREŚĆ ============ -->
+<div class="overlay" id="quiz">
+  <div class="stack g5" style="max-width:36rem; width:100%">
+    <div class="stack g2">
+      <p class="eyebrow" style="color:var(--stage-sig)" id="quiz-eyebrow"></p>
+      <h2 id="quiz-q"></h2>
+    </div>
+    <div class="stack g2" id="quiz-opts"></div>
+    <p class="small" style="color:var(--stage-dim)">Nie wracaj myślami do tekstu na siłę — jeśli nie wiesz, zgadnij.</p>
+  </div>
+</div>
+
+<!-- ============ 5. WYNIKI ============ -->
+<main id="results" class="wrap stack g7" style="display:none"></main>
+
+<script>
+"use strict";
+/* =====================================================================
+   CZYTNIK UWAGI — prototyp zadania czytania samosterowanego
+   Wszystkie obliczenia lokalnie. Zero żądań sieciowych poza krojami pisma.
+   ===================================================================== */
+
+/* ---------- 1. MATERIAŁ BODŹCOWY -------------------------------------
+   Każdy tekst: 26 linii po 8–14 słów, styl popularnonaukowy, neutralny
+   emocjonalnie. Linie oznaczone `a:1` są semantycznie niespójne
+   (paradygmat wykrywania bezsensu, Schooler i in.).
+   `dist` – numery linii (1-based) z dystraktorem; `probe` – po których
+   liniach pojawia się sonda myśli.                                     */
+
+const PASSAGES = [
+{
+  id:"baltyk", title:"Bałtyk", dist:[5,16], probe:[11,23],
+  lines:[
+    "Morze Bałtyckie jest jednym z najmłodszych mórz na naszej planecie.",
+    "Powstało dopiero po ustąpieniu lądolodu, około dwunastu tysięcy lat temu.",
+    "Przez ten czas kilkukrotnie zmieniało zasolenie, poziom wody i kształt brzegów.",
+    "Geolodzy wyróżniają kolejne stadia: jezioro lodowe, morze Yoldiowe i morze Litorynowe.",
+    "Każde z nich miało inne połączenie z otwartym oceanem.",
+    "Dziś woda wymienia się wyłącznie przez wąskie i płytkie cieśniny duńskie.",
+    "Pełna wymiana całej objętości zajmuje mniej więcej trzydzieści lat.",
+    "Z tego powodu Bałtyk reaguje na zanieczyszczenia wyjątkowo wolno.",
+    {t:"Sól wydobywaną z jego dna sortuje się alfabetycznie w urzędach Sztokholmu.", a:1},
+    "Zasolenie spada wyraźnie w kierunku północno-wschodnim, ku Zatoce Botnickiej.",
+    "W okolicach Zatoki Fińskiej woda jest już niemal słodka.",
+    "Dlatego mieszkają tu obok siebie gatunki morskie i słodkowodne.",
+    "Wiele z nich żyje na granicy swojej fizjologicznej tolerancji.",
+    "Małże i ryby osiągają tutaj mniejsze rozmiary niż w Morzu Północnym.",
+    "Odrębnym problemem są tak zwane strefy martwe przy dnie.",
+    "Powstają, gdy nadmiar azotu i fosforu napędza masowe zakwity glonów.",
+    "Obumierające glony opadają na dno i są rozkładane przez bakterie.",
+    "Proces ten zużywa tlen szybciej, niż zdąży on dopłynąć z powierzchni.",
+    "Wodę w głębokich zagłębieniach odcina zaś warstwa skokowa gęstości.",
+    {t:"Rybacy zaradzają temu, opowiadając dorszom historie zapamiętywane aż do wiosny.", a:1},
+    "Bez wlewów słonej wody z Morza Północnego natlenienie dna nie wraca.",
+    "Takie wlewy zdarzają się nieregularnie, raz na kilka lub kilkanaście lat.",
+    "Ostatnie duże wlewy odnotowano w latach dziewięćdziesiątych i w roku dwutysięcznym czternastym.",
+    "Ich siła zależy od układu wiatrów nad północno-zachodnią Europą.",
+    "Klimatolodzy sprawdzają, czy ocieplenie zmniejsza częstotliwość tych zdarzeń.",
+    "Odpowiedź wymaga jednak dłuższych serii pomiarowych, niż dziś dysponujemy."
+  ],
+  questions:[
+    {q:"Ile mniej więcej trwa pełna wymiana wód Bałtyku?", o:["Około trzech lat","Około trzydziestu lat","Około trzystu lat","Dwanaście tysięcy lat"], c:1},
+    {q:"W którym kierunku wyraźnie spada zasolenie?", o:["Ku cieśninom duńskim","Ku Morzu Północnemu","Ku Zatoce Botnickiej","Ku południowym brzegom"], c:2},
+    {q:"Co bezpośrednio zużywa tlen przy dnie?", o:["Żywe glony w toni","Bakterie rozkładające obumarłe glony","Ryby głębinowe","Wlewy słonej wody"], c:1},
+    {q:"Od czego zależy siła wlewów z Morza Północnego?", o:["Od temperatury wody przy dnie","Od zasolenia Zatoki Fińskiej","Od układu wiatrów nad Europą","Od pory roku"], c:2}
+  ]
+},
+{
+  id:"pszczoly", title:"Nawigacja pszczół", dist:[8,21], probe:[9,25],
+  lines:[
+    "Pszczoła miodna potrafi wrócić do ula z odległości kilku kilometrów.",
+    "Nie korzysta przy tym z żadnego pojedynczego, niezawodnego zmysłu.",
+    "Zamiast tego łączy kilka niezależnych źródeł informacji o kierunku.",
+    "Podstawowym punktem odniesienia jest dla niej położenie słońca.",
+    "Kłopot polega na tym, że słońce przesuwa się po niebie w ciągu dnia.",
+    "Owad musi więc korygować odczyt o czas, który upłynął od wylotu.",
+    "Wewnętrzny zegar okołodobowy pozwala mu wykonać tę poprawkę.",
+    "Gdy niebo zakrywają chmury, pszczoła odczytuje polaryzację światła.",
+    "Wystarczy jej skrawek czystego nieba wielkości kilku stopni kątowych.",
+    {t:"Przy pełnym zachmurzeniu ul wynajmuje przewodnika, który za opłatą prowadzi robotnice.", a:1},
+    "Drugim mechanizmem jest tak zwany integrator drogi.",
+    "Pszczoła sumuje przebyte odcinki wraz z kierunkami, w jakich leciała.",
+    "Dystans szacuje na podstawie tempa przesuwania się obrazu na siatkówce.",
+    "Ten sam mechanizm daje się oszukać, prowadząc owada wzorzystym tunelem.",
+    "W eksperymentach pszczoły przeceniały wtedy przebytą odległość nawet kilkukrotnie.",
+    "Trzecim źródłem informacji jest zapamiętana panorama okolicy ula.",
+    "W pobliżu celu owad porównuje bieżący widok z zapisanym wzorcem.",
+    "Różnica między obrazami wskazuje mu, w którą stronę się przesunąć.",
+    "Część tej wiedzy robotnica przekazuje innym poprzez taniec wywijany.",
+    "Kąt tańca względem pionu odpowiada kątowi między celem a słońcem.",
+    "Czas trwania fazy wywijanej koduje natomiast odległość do pożytku.",
+    {t:"Odbiorczynie zapisują te dane w zeszytach, które potem oddają do archiwum.", a:1},
+    "Odbiorczynie tańca odlatują następnie w podanym kierunku i szukają zapachu.",
+    "Skuteczność takiej rekrutacji bywa niższa, niż zakładano w pierwszych pracach.",
+    "Część robotnic i tak wraca do znanych sobie wcześniej miejsc.",
+    "Nawigacja pszczoły jest więc kompromisem między pamięcią a bieżącym pomiarem."
+  ],
+  questions:[
+    {q:"Co pozwala pszczole skorygować położenie słońca względem czasu?", o:["Polaryzacja światła","Wewnętrzny zegar okołodobowy","Taniec wywijany","Panorama okolicy ula"], c:1},
+    {q:"Na czym opiera się szacowanie przebytego dystansu?", o:["Na liczbie uderzeń skrzydeł","Na tempie przesuwania obrazu na siatkówce","Na zużyciu nektaru","Na kącie padania światła"], c:1},
+    {q:"Co koduje czas trwania fazy wywijanej tańca?", o:["Kierunek do pożytku","Jakość nektaru","Odległość do pożytku","Porę dnia"], c:2},
+    {q:"Co robi pszczoła w bezpośredniej bliskości celu?", o:["Porównuje widok z zapamiętanym wzorcem","Zeruje integrator drogi","Odczytuje polaryzację","Czeka na odbiorczynie tańca"], c:0}
+  ]
+},
+{
+  id:"papier", title:"Historia papieru", dist:[3,14,22], probe:[13],
+  lines:[
+    "Papier wynaleziono w Chinach na długo przed jego pojawieniem się w Europie.",
+    "Tradycja przypisuje ten wynalazek urzędnikowi dworskiemu Cai Lunowi.",
+    "Znaleziska wskazują jednak na receptury wcześniejsze o dobre dwa stulecia.",
+    "Pierwsze arkusze powstawały z rozdrobnionych włókien konopi, kory i szmat.",
+    "Surowiec moczono, tłuczono i zawieszano w wodzie na sicie.",
+    "Po odsączeniu i wysuszeniu włókna wiązały się ze sobą bez żadnego kleju.",
+    "Technologia wędrowała na zachód powoli, wraz ze szlakami handlowymi.",
+    "W ósmym wieku wytwarzano papier już w Samarkandzie, później w Bagdadzie.",
+    {t:"W Kairze arkusze dojrzewały w piwnicach, gdzie śpiewano im pieśni o urodzaju.", a:1},
+    "Do Europy trafił przez Al-Andalus oraz południe Półwyspu Apenińskiego.",
+    "Włoskie młyny w Fabriano wprowadziły napęd wodny i stępory z krzywką.",
+    "Wprowadziły też klejenie żelatyną oraz znak wodny odciskany w sicie.",
+    "Znak wodny pełnił funkcję sygnatury warsztatu i zabezpieczenia towaru.",
+    "Dzięki niemu historycy potrafią dziś datować niepodpisane rękopisy.",
+    "Prawdziwy skok zapotrzebowania przyniósł druk z ruchomą czcionką.",
+    "Szmat zaczęło brakować, a ich wywóz obłożono gdzieniegdzie zakazem.",
+    "Surowca alternatywnego poszukiwano więc przez ponad sto lat.",
+    "Rozwiązanie podsunęła obserwacja gniazd os budowanych z przeżutego drewna.",
+    {t:"Osy udostępniły swoje patenty dopiero po długich negocjacjach z papiernikami.", a:1},
+    "W dziewiętnastym wieku opanowano ścieranie i roztwarzanie drewna na masę.",
+    "Papier stał się tani, ale też znacznie mniej trwały niż dawny szmaciany.",
+    "Pozostałości kwasów z klejenia stopniowo niszczą włókna od wewnątrz.",
+    "Książki z tamtego okresu kruszą się dziś w rękach bibliotekarzy.",
+    "Biblioteki prowadzą kosztowne programy odkwaszania zagrożonych zbiorów.",
+    "Współczesny papier bezkwasowy ma przetrwać kilkaset lat bez degradacji.",
+    "Trwałość okazała się kosztem, jaki zapłacono za masową dostępność."
+  ],
+  questions:[
+    {q:"Co spajało włókna w pierwszych arkuszach?", o:["Żelatyna","Klej roślinny","Nic — wiązały się same po wysuszeniu","Wapno"], c:2},
+    {q:"Do czego historycy wykorzystują dziś znak wodny?", o:["Do oceny bieli papieru","Do datowania niepodpisanych rękopisów","Do pomiaru grubości arkusza","Do wykrywania kwasów"], c:1},
+    {q:"Co podsunęło pomysł wyrobu papieru z drewna?", o:["Gniazda os","Kora brzozy","Chińskie receptury","Prace młynów w Fabriano"], c:0},
+    {q:"Dlaczego dziewiętnastowieczne książki się kruszą?", o:["Bo drukowano je zbyt gęsto","Bo pozostałości kwasów niszczą włókna","Bo brakowało szmat","Bo nie miały znaku wodnego"], c:1}
+  ]
+}];
+
+const DISTRACTORS = [
+  {app:"Kalendarz", body:"Spotkanie zespołu — za 10 minut"},
+  {app:"Wiadomości", body:"Marta: „masz chwilę?”"},
+  {app:"System", body:"Aktualizacja gotowa do instalacji"},
+  {app:"Poczta", body:"3 nowe wiadomości w skrzynce"},
+  {app:"Bank", body:"Zaksięgowano przelew przychodzący"},
+  {app:"Dysk", body:"Kończy się miejsce na urządzeniu"},
+  {app:"Wiadomości", body:"Tomek dodał Cię do grupy „Wyjazd”"}
+];
+
+const PROBE_OPTS = [
+  {k:"on-task",   label:"Na treści tekstu, który czytam"},
+  {k:"task-rel",  label:"Na samym zadaniu — na tym, jak mi idzie"},
+  {k:"mw-aware",  label:"Na czymś innym — i wiedziałem(-am) o tym"},
+  {k:"mw-unaware",label:"Na czymś innym — zorientowałem(-am) się dopiero teraz"},
+  {k:"blank",     label:"Pustka — nie myślałem(-am) o niczym"}
+];
+
+/* ---------- 2. STAN SESJI -------------------------------------------- */
+
+const S = {
+  t0:0, order:[], pi:0, li:0,
+  lines:[],          // rekord każdej linii (pierwsze wejście)
+  events:[],         // surowy log zdarzeń
+  probes:[], quiz:[],
+  lineOnset:0, flaggedThisLine:false, distractorShown:0, toastTimer:null,
+  blurStart:0, blurTotal:0, blurCount:0, spaceDown:0, holdTimes:[]
+};
+
+const $ = id => document.getElementById(id);
+const now = () => performance.now();
+const log = (type, d) => S.events.push(Object.assign({t:Math.round(now()-S.t0), type}, d||{}));
+const lineText = l => typeof l === "string" ? l : l.t;
+const isAnom   = l => typeof l === "object" && l.a === 1;
+
+/* ---------- 3. SILNIK ZADANIA ---------------------------------------- */
+
+$("ack").addEventListener("change", e => $("start").disabled = !e.target.checked);
+$("start").addEventListener("click", begin);
+
+function begin(){
+  S.t0 = now();
+  S.order = $("short").checked ? [0] : [0,1,2];
+  log("session-start", {short:$("short").checked, screen:`${screen.width}x${screen.height}`});
+  buildLineIndex();
+  $("intro").style.display = "none";
+  $("stage").classList.add("on");
+  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keyup", onKeyUp);
+  window.addEventListener("blur", onBlur);
+  window.addEventListener("focus", onFocus);
+  $("toast").addEventListener("click", onToastClick);
+  showLine();
+}
+
+function buildLineIndex(){
+  S.lines = [];
+  S.order.forEach(pIdx => {
+    const p = PASSAGES[pIdx];
+    p.lines.forEach((l, i) => S.lines.push({
+      passage:p.id, pIdx, n:i+1, text:lineText(l),
+      chars:lineText(l).length, words:lineText(l).split(/\s+/).length,
+      anomaly:isAnom(l), distractor:p.dist.includes(i+1), probeAfter:p.probe.includes(i+1),
+      rt:null, visits:0, regressedFrom:0, flagged:false, flagRt:null
+    }));
+  });
+}
+
+function showLine(){
+  const L = S.lines[S.li];
+  const el = $("line");
+  el.textContent = L.text;
+  el.classList.remove("flash");
+  $("foot-left").textContent = `${PASSAGES[L.pIdx].title} · ${L.n}/${PASSAGES[L.pIdx].lines.length}`;
+  $("progress").style.width = (S.li / S.lines.length * 100) + "%";
+  S.flaggedThisLine = L.flagged;
+  L.visits++;
+  S.lineOnset = now();
+  log("line-onset", {i:S.li, visit:L.visits});
+  if (L.distractor && L.visits === 1) scheduleToast();
+}
+
+function scheduleToast(){
+  const d = DISTRACTORS[S.distractorShown % DISTRACTORS.length];
+  S.distractorShown++;
+  setTimeout(() => {
+    if (!$("stage").classList.contains("on")) return;
+    $("t-app").textContent = d.app; $("t-body").textContent = d.body;
+    $("toast").classList.add("on");
+    log("distractor-on", {i:S.li, app:d.app});
+    S.toastTimer = setTimeout(hideToast, 4000);
+  }, 400);
+}
+function hideToast(){ $("toast").classList.remove("on"); clearTimeout(S.toastTimer); }
+function onToastClick(){
+  log("distractor-click", {i:S.li});
+  hideToast();
+}
+
+function onKeyDown(e){
+  if ($("probe").classList.contains("on")) return handleProbeKey(e);
+  if ($("quiz").classList.contains("on"))  return handleQuizKey(e);
+  if (!$("stage").classList.contains("on")) return;
+  if (e.code === "Space"){
+    e.preventDefault();
+    if (!S.spaceDown) S.spaceDown = now();
+  } else if (e.code === "ArrowLeft"){
+    e.preventDefault(); regress();
+  } else if (e.code === "KeyX"){
+    e.preventDefault(); flagLine();
+  }
+}
+function onKeyUp(e){
+  if (e.code === "Space" && S.spaceDown && $("stage").classList.contains("on")){
+    S.holdTimes.push(now() - S.spaceDown);
+    S.spaceDown = 0;
+    advance();
+  }
+}
+
+function flagLine(){
+  const L = S.lines[S.li];
+  if (S.flaggedThisLine) return;
+  S.flaggedThisLine = true;
+  L.flagged = true;
+  L.flagRt = Math.round(now() - S.lineOnset);
+  log("flag", {i:S.li, rt:L.flagRt, anomaly:L.anomaly});
+  $("line").classList.add("flash");
+}
+
+function closeLine(){                 // czas pierwszej ekspozycji linii
+  const L = S.lines[S.li];
+  const rt = Math.round(now() - S.lineOnset);
+  if (L.rt === null) L.rt = rt;
+  return rt;
+}
+
+function regress(){
+  if (S.li === 0) return;
+  const prev = S.lines[S.li - 1];
+  if (prev.pIdx !== S.lines[S.li].pIdx) return;   // nie przez granicę tekstu
+  closeLine();                                    // inaczej linia porzucona nie miałaby czasu
+  prev.regressedFrom++;
+  log("regression", {from:S.li, to:S.li - 1});
+  S.li--;
+  showLine();
+}
+
+function advance(){
+  const L = S.lines[S.li];
+  const rt = closeLine();
+  log("advance", {i:S.li, rt, visit:L.visits});
+  hideToast();
+
+  if (L.probeAfter && L.visits === 1) return openProbe();
+  nextLine();
+}
+
+function nextLine(){
+  const cur = S.lines[S.li];
+  const nxt = S.lines[S.li + 1];
+  if (!nxt || nxt.pIdx !== cur.pIdx){        // koniec tekstu → pytania
+    $("stage").classList.remove("on");
+    return openQuiz(cur.pIdx, 0);
+  }
+  S.li++;
+  showLine();
+}
+
+/* ---------- sonda myśli ---------- */
+let probeOnset = 0;
+function openProbe(){
+  $("stage").classList.remove("on");
+  const box = $("probe-opts"); box.innerHTML = "";
+  PROBE_OPTS.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.innerHTML = `<span class="k">${i+1}</span><span>${o.label}</span>`;
+    b.addEventListener("click", () => answerProbe(i));
+    box.appendChild(b);
+  });
+  $("probe").classList.add("on");
+  probeOnset = now();
+  log("probe-open", {i:S.li});
+}
+function handleProbeKey(e){
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= PROBE_OPTS.length){ e.preventDefault(); answerProbe(n - 1); }
+}
+function answerProbe(i){
+  const rt = Math.round(now() - probeOnset);
+  S.probes.push({lineIdx:S.li, key:PROBE_OPTS[i].k, rt});
+  log("probe-answer", {i:S.li, key:PROBE_OPTS[i].k, rt});
+  $("probe").classList.remove("on");
+  $("stage").classList.add("on");
+  nextLine();
+}
+
+/* ---------- pytania o treść ---------- */
+let quizP = 0, quizQ = 0, quizOnset = 0;
+function openQuiz(pIdx, qIdx){
+  quizP = pIdx; quizQ = qIdx;
+  const p = PASSAGES[pIdx], q = p.questions[qIdx];
+  $("quiz-eyebrow").textContent = `${p.title} · pytanie ${qIdx+1} z ${p.questions.length}`;
+  $("quiz-q").textContent = q.q;
+  const box = $("quiz-opts"); box.innerHTML = "";
+  q.o.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.innerHTML = `<span class="k">${i+1}</span><span>${o}</span>`;
+    b.addEventListener("click", () => answerQuiz(i));
+    box.appendChild(b);
+  });
+  $("quiz").classList.add("on");
+  quizOnset = now();
+}
+function handleQuizKey(e){
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 4){ e.preventDefault(); answerQuiz(n - 1); }
+}
+function answerQuiz(i){
+  const p = PASSAGES[quizP], q = p.questions[quizQ];
+  const rec = {passage:p.id, q:quizQ, answer:i, correct:i === q.c, rt:Math.round(now() - quizOnset)};
+  S.quiz.push(rec);
+  log("quiz-answer", rec);
+  if (quizQ + 1 < p.questions.length) return openQuiz(quizP, quizQ + 1);
+  $("quiz").classList.remove("on");
+  if (S.li + 1 < S.lines.length){ S.li++; $("stage").classList.add("on"); showLine(); }
+  else finish();
+}
+
+/* ---------- utrata okna ---------- */
+function onBlur(){
+  if (!S.t0 || $("results").style.display !== "none") return;
+  S.blurStart = now(); S.blurCount++; log("window-blur", {i:S.li});
+}
+function onFocus(){
+  if (!S.blurStart) return;
+  const d = now() - S.blurStart; S.blurTotal += d; S.blurStart = 0;
+  log("window-focus", {i:S.li, away:Math.round(d)});
+  S.lineOnset += d;   // czas poza oknem nie liczy się do czasu czytania linii
+}
+
+function finish(){
+  document.removeEventListener("keydown", onKeyDown);
+  document.removeEventListener("keyup", onKeyUp);
+  log("session-end", {});
+  $("stage").classList.remove("on");
+  renderResults(computeMetrics());
+}
+
+/* ---------- 4. WSKAŹNIKI ---------------------------------------------
+   Wszystko liczone na czasach pierwszego przejścia przez linię.
+   Kluczowa idea: interesuje nas nie średnie tempo, tylko ROZRZUT
+   i jego struktura w czasie — najlepiej replikowany korelat ADHD
+   w zadaniach czasu reakcji.                                          */
+
+const mean = a => a.reduce((s,x)=>s+x,0) / (a.length||1);
+const sd   = a => { const m = mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))); };
+const med  = a => { const s=[...a].sort((x,y)=>x-y); const n=s.length; return n? (n%2? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2) : null; };
+
+/* rozwiązanie układu 3×3 metodą eliminacji — do regresji wielorakiej */
+function solve3(A, b){
+  const M = A.map((r,i)=>[...r, b[i]]);
+  for (let c=0;c<3;c++){
+    let p=c; for (let r=c+1;r<3;r++) if (Math.abs(M[r][c])>Math.abs(M[p][c])) p=r;
+    [M[c],M[p]]=[M[p],M[c]];
+    if (Math.abs(M[c][c])<1e-12) return [0,0,0];
+    for (let r=0;r<3;r++){ if (r===c) continue;
+      const f=M[r][c]/M[c][c]; for (let k=c;k<4;k++) M[r][k]-=f*M[c][k]; }
+  }
+  return [M[0][3]/M[0][0], M[1][3]/M[1][1], M[2][3]/M[2][2]];
+}
+
+/* reszty z regresji: czas linii ~ liczba znaków + pozycja w sesji.
+   Usuwa wpływ długości linii i efektu wprawy/zmęczenia.               */
+function residualize(rows){
+  const n = rows.length, X = rows.map(r=>[1, r.chars, r.k]), y = rows.map(r=>r.rt);
+  const A = [[0,0,0],[0,0,0],[0,0,0]], b = [0,0,0];
+  for (let i=0;i<n;i++) for (let j=0;j<3;j++){
+    b[j]+=X[i][j]*y[i]; for (let k=0;k<3;k++) A[j][k]+=X[i][j]*X[i][k];
+  }
+  const w = solve3(A,b);
+  return rows.map((r,i)=> y[i] - (w[0]+w[1]*X[i][1]+w[2]*X[i][2]));
+}
+
+/* ex-Gaussian metodą momentów: tau to „ogon” nietypowo wolnych reakcji */
+function exGauss(xs){
+  const m = mean(xs), s = sd(xs);
+  const m3 = mean(xs.map(x=>(x-m)**3));
+  const skew = s>0 ? m3/(s**3) : 0;
+  if (skew <= 0.01) return {mu:m, sigma:s, tau:0};
+  const tau = s * Math.pow(skew/2, 1/3);
+  return {mu:m - tau, sigma:Math.sqrt(Math.max(s*s - tau*tau, 0)), tau};
+}
+
+/* względna moc w paśmie wolnych oscylacji 0,03–0,07 Hz.
+   Podwyższona moc w tym paśmie opisywana jest jako marker ADHD
+   (Castellanos i in.). Próbkowanie jest nierównomierne — traktujemy
+   kolejne linie jako równe odstępy o długości średniego czasu linii,
+   więc wynik jest przybliżeniem, nie estymatorem widma.               */
+function bandPower(x, dtSec, lo, hi){
+  const N = x.length; if (N < 16 || dtSec <= 0) return null;
+  const m = mean(x); const c = x.map(v=>v-m);
+  let band = 0, total = 0;
+  for (let k=1;k<=Math.floor(N/2);k++){
+    let re=0, im=0;
+    for (let n=0;n<N;n++){ const a = -2*Math.PI*k*n/N; re += c[n]*Math.cos(a); im += c[n]*Math.sin(a); }
+    const p = (re*re+im*im)/N;
+    const f = k/(N*dtSec);
+    total += p; if (f>=lo && f<=hi) band += p;
+  }
+  return total>0 ? band/total : null;
+}
+
+const Z = p => { // przybliżenie odwrotnej dystrybuanty normalnej (Beasley–Springer–Moro)
+  const a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239],
+        b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1],
+        c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],
+        d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996,3.754408661907416];
+  const pl=0.02425;
+  if (p<pl){const q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if (p>1-pl){const q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  const q=p-0.5, r=q*q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+};
+
+function computeMetrics(){
+  const rows = S.lines.map((L,k)=>({...L, k}));
+  const resid = residualize(rows);
+  rows.forEach((r,i)=> r.resid = resid[i]);
+  const rts = rows.map(r=>r.rt);
+  const perChar = rows.map(r=>r.rt/r.chars);
+
+  /* --- zmienność --- */
+  const eg = exGauss(rts);
+  const cv = sd(resid) / (mean(rts)||1);
+  const slow = bandPower(resid, mean(rts)/1000, 0.03, 0.07);
+
+  /* --- wykrywanie bezsensu (hit także gdy flaga padła linię później) --- */
+  let hits=0, miss=0, fa=0, cr=0; const lat=[];
+  rows.forEach((r,i)=>{
+    if (r.anomaly){
+      if (r.flagged){ hits++; lat.push(r.flagRt); }
+      else if (rows[i+1] && rows[i+1].flagged && rows[i+1].passage===r.passage){ hits++; lat.push(r.rt + rows[i+1].flagRt); }
+      else miss++;
+    }
+  });
+  rows.forEach((r,i)=>{
+    if (r.anomaly) return;
+    if (rows[i-1] && rows[i-1].anomaly && !rows[i-1].flagged) return; // opóźniony hit, nie fałszywy alarm
+    if (r.flagged) fa++; else cr++;
+  });
+  const hr = (hits+0.5)/(hits+miss+1), fr = (fa+0.5)/(fa+cr+1);
+  const dprime = Z(hr) - Z(fr);
+
+  /* --- sondy myśli --- */
+  const mwKeys = ["mw-aware","mw-unaware","blank"];
+  const mwRate = S.probes.length ? S.probes.filter(p=>mwKeys.includes(p.key)).length / S.probes.length : null;
+
+  /* walidacja wewnętrzna: rozrzut czasów w 4 liniach przed sondą,
+     osobno dla sond „byłem przy tekście” i „odpłynąłem”              */
+  const pre = key => {
+    const vals=[];
+    S.probes.filter(p => mwKeys.includes(p.key) === key).forEach(p=>{
+      const w = resid.slice(Math.max(0,p.lineIdx-3), p.lineIdx+1);
+      if (w.length>=3) vals.push(sd(w));
+    });
+    return vals.length ? mean(vals) : null;
+  };
+  const preMW = pre(true), preOn = pre(false);
+
+  /* --- dystraktory --- */
+  const base = rows.filter(r=>!r.distractor && !r.anomaly).map(r=>r.resid);
+  const dLines = rows.filter(r=>r.distractor).map(r=>r.resid);
+  const distCost = dLines.length ? mean(dLines) - mean(base) : null;
+  const lagCost = [1,2,3].map(g => {
+    const v = rows.filter((r,i)=> rows[i-g] && rows[i-g].distractor && rows[i-g].passage===r.passage).map(r=>r.resid);
+    return v.length ? mean(v) - mean(base) : null;
+  });
+  const clicks = S.events.filter(e=>e.type==="distractor-click").length;
+
+  /* --- pozostałe --- */
+  const premature = perChar.filter(v=>v<12).length;
+  const regressions = S.events.filter(e=>e.type==="regression").length;
+  const acc = S.quiz.length ? S.quiz.filter(q=>q.correct).length / S.quiz.length : null;
+  const totMs = rows.reduce((a,r)=>a+r.rt,0);
+  const wpm = totMs>0 ? rows.reduce((a,r)=>a+r.words,0)/(totMs/60000) : null;
+
+  return {rows, resid, eg, cv, slow, dprime, hits, miss, fa, lat:med(lat),
+    mwRate, preMW, preOn, distCost, lagCost, clicks, premature, regressions, acc, wpm,
+    blurCount:S.blurCount, blurTotal:S.blurTotal,
+    duration:(S.events[S.events.length-1].t)/60000,
+    hold:med(S.holdTimes)};
+}
+
+/* ---------- 5. PANEL WYNIKÓW ------------------------------------------ */
+
+const fmt = (v, d=0, unit="") => (v===null||v===undefined||!Number.isFinite(v)) ? "—" : v.toFixed(d)+unit;
+
+/* Progi są ORIENTACYJNE i pochodzą z rzędów wielkości podawanych
+   w literaturze, nie z normalizacji tego narzędzia. Do zastąpienia
+   percentylami z własnej próby — patrz README.                        */
+function band(v, good, bad, dir){
+  if (v===null||v===undefined||Number.isNaN(v)||!Number.isFinite(v)) return "";
+  return dir === -1
+    ? (v>=good ? "ok" : (v>=bad ? "mid" : "hi"))   // niżej = gorzej (d′, rozumienie)
+    : (v<=good ? "ok" : (v<=bad ? "mid" : "hi"));  // wyżej = gorzej (τ, CV, koszty)
+}
+const BANDLBL = {ok:"w normie orientacyjnej", mid:"podwyższone", hi:"wyraźnie podwyższone"};
+const BANDLBL_INV = {ok:"w normie orientacyjnej", mid:"obniżone", hi:"wyraźnie obniżone"};
+
+function metricCard(label, val, unit, note, cls, dir, small){
+  const inv = dir === -1;
+  return `<div class="metric">
+    <span class="m-label">${label}</span>
+    <span class="m-val${small?" sm":""}">${val}<span class="m-unit">${unit||""}</span></span>
+    ${cls?`<span class="pill ${cls}">${(inv?BANDLBL_INV:BANDLBL)[cls]}</span>`:""}
+    <span class="m-note">${note}</span></div>`;
+}
+
+function renderResults(M){
+  const r = $("results");
+  const mwPct = M.mwRate===null ? "—" : Math.round(M.mwRate*100)+"%";
+  const accPct = M.acc===null ? "—" : Math.round(M.acc*100)+"%";
+  const slowPct = M.slow===null ? "—" : Math.round(M.slow*100)+"%";
+
+  r.innerHTML = `
+  <header class="stack g3">
+    <p class="eyebrow">Wynik sesji · ${new Date().toLocaleString("pl-PL")}</p>
+    <h1>Profil uwagi w czytaniu</h1>
+    <p class="lede">${M.rows.length} linii · ${fmt(M.duration,1)} min · ${fmt(M.wpm,0)} słów/min ·
+      rozumienie ${accPct}</p>
+  </header>
+
+  <section class="stack g4">
+    <div class="stack g2">
+      <h2>Przebieg czasów czytania</h2>
+      <p class="small muted" style="max-width:44rem">Każdy punkt to jedna linia: odchylenie jej czasu czytania od
+        tego, czego można się było spodziewać po jej długości i miejscu w sesji. Płaski przebieg oznacza równe tempo;
+        szarpany — uwagę, która się rwie.</p>
+    </div>
+    <div class="card stack g4">
+      <div class="chart-box"><canvas id="trace" height="260"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--signal)"></i>czas linii</span>
+        <span><i style="background:color-mix(in srgb,var(--warn) 35%,transparent)"></i>linia z powiadomieniem</span>
+        <span><i style="background:var(--crit)"></i>linia bez sensu — przeoczona</span>
+        <span><i style="border:2px solid var(--crit)"></i>linia bez sensu — wykryta</span>
+        <span><i style="background:var(--ink-2)"></i>sonda: przy tekście</span>
+        <span><i style="background:var(--crit)"></i>sonda: myślami gdzie indziej</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <div class="stack g2">
+      <h2>Zmienność uwagi</h2>
+      <p class="small muted">Najlepiej replikowana grupa wskaźników. Chodzi o rozrzut, nie o średnie tempo.</p>
+    </div>
+    <div class="metrics">
+      ${metricCard("τ — ogon wolnych linii", fmt(M.eg.tau,0), " ms", "Składowa wykładnicza rozkładu czasów. Rośnie, gdy pojedyncze linie zajmują nieproporcjonalnie długo — zwykle wtedy, gdy uwaga na chwilę odpływa.", band(M.eg.tau,180,320,1))}
+      ${metricCard("Współczynnik zmienności", fmt(M.cv,2), "", "Rozrzut reszt po usunięciu wpływu długości linii i zmęczenia, w stosunku do średniego czasu linii.", band(M.cv,0.35,0.55,1))}
+      ${metricCard("Moc pasma 0,03–0,07 Hz", slowPct, "", "Udział wolnych, ~20–30-sekundowych oscylacji w całej zmienności tempa. Falowanie uwagi zamiast pojedynczych potknięć.", band(M.slow,0.15,0.25,1))}
+      ${metricCard("μ — tempo bazowe", fmt(M.eg.mu,0), " ms", "Typowy czas linii po odjęciu ogona. Sam w sobie słabo różnicuje — jest tłem dla τ.", "")}
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <div class="stack g2">
+      <h2>Czy tekst faktycznie był czytany</h2>
+      <p class="small muted">Rozdziela „czytam wolno, ale rozumiem” od „przewijam wzrokiem”.</p>
+    </div>
+    <div class="metrics">
+      ${metricCard("d′ wykrywania bezsensu", fmt(M.dprime,2), "", `${M.hits} trafień, ${M.miss} przeoczeń, ${M.fa} fałszywych alarmów. Niskie d′ przy szybkim tempie to sygnał czytania bez kodowania treści.`, band(M.dprime,2.0,1.0,-1), -1)}
+      ${metricCard("Opóźnienie wykrycia", fmt(M.lat,0), " ms", "Mediana czasu od pojawienia się bezsensownej linii do reakcji.", "")}
+      ${metricCard("Odpływanie myślami", mwPct, "", `Odsetek sond, w których uwaga była poza tekstem (${S.probes.length} sond).`, band(M.mwRate,0.25,0.45,1))}
+      ${metricCard("Rozumienie tekstu", accPct, "", `${S.quiz.filter(q=>q.correct).length} z ${S.quiz.length} pytań. Zestawiaj z tempem: wysokie tempo przy niskim rozumieniu to inny profil niż niskie tempo przy niskim rozumieniu.`, band(M.acc,0.75,0.5,-1), -1)}
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <div class="stack g2">
+      <h2>Reakcja na zakłócenie</h2>
+      <p class="small muted">Ile kosztuje powiadomienie i jak długo trwa powrót do tekstu.</p>
+    </div>
+    <div class="metrics">
+      ${metricCard("Koszt powiadomienia", (M.distCost===null?"—":(M.distCost>0?"+":"")+fmt(M.distCost,0)), " ms", "Przyrost czasu linii, na której pojawiło się powiadomienie, względem linii spokojnych.", band(M.distCost,150,400,1))}
+      ${metricCard("Powrót do tempa", M.lagCost.map(v=>v===null?"—":(v>0?"+":"")+Math.round(v)).join(" · "), "", "Reszty na kolejnych trzech liniach po powiadomieniu (ms). Wartości utrzymujące się powyżej zera oznaczają wolny powrót.", "", 0, true)}
+      ${metricCard("Kliknięcia w powiadomienie", M.clicks, "", "Mimo instrukcji, by nie klikać. Bezpośredni wskaźnik zachowania impulsywnego.", band(M.clicks,0,1,1))}
+      ${metricCard("Wyjścia poza okno", M.blurCount, "", `Łącznie ${fmt(M.blurTotal/1000,1)} s poza kartą. Czas ten odjęto od czasów czytania linii.`, band(M.blurCount,0,2,1))}
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <div class="stack g2">
+      <h2>Sposób poruszania się po tekście</h2>
+      <p class="small muted">Ślad strategii, nie samej wydajności.</p>
+    </div>
+    <div class="metrics">
+      ${metricCard("Powroty do poprzedniej linii", M.regressions, "", "Ile razy trzeba było cofnąć się o linię. Wysokie wartości przy dobrym rozumieniu to raczej kompensacja niż deficyt.", band(M.regressions,4,10,1))}
+      ${metricCard("Przejścia przedwczesne", M.premature, "", "Linie zamknięte szybciej niż 12 ms na znak, czyli poniżej fizycznej granicy czytania. Pomijanie treści.", band(M.premature,0,2,1))}
+      ${metricCard("Czas trzymania spacji", fmt(M.hold,0), " ms", "Mediana. Bardzo krótkie, jednostajne naciśnięcia towarzyszą przewijaniu na automat.", "")}
+      ${metricCard("Walidacja wewnętrzna", (M.preMW!==null&&M.preOn!==null)? fmt(M.preMW/M.preOn,2)+"×" : "—", "", "Rozrzut czasów w czterech liniach przed sondą „odpłynąłem” podzielony przez ten sam rozrzut przed sondą „byłem przy tekście”. Wartość powyżej 1 znaczy, że zmienność zapowiadała odpływanie — dowód, że pomiar łapie to samo, co samoopis.", "")}
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <h2>Dane surowe</h2>
+    <div class="card stack g4">
+      <p class="small muted">Pełny log zdarzeń z sygnaturami czasu, do analizy we własnym środowisku.
+        W katalogu <span class="mono">analysis/</span> jest skrypt, który przelicza z niego wszystkie powyższe wskaźniki.</p>
+      <textarea id="dump" readonly></textarea>
+      <div class="row">
+        <button class="btn" id="copy">Skopiuj JSON</button>
+        <a class="btn-ghost" id="dl" style="text-decoration:none; display:inline-block">Pobierz plik</a>
+        <button class="btn-ghost" id="again">Jeszcze raz</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="notice stack g3">
+    <p class="small"><strong>To nie jest test diagnostyczny.</strong> Narzędzie nie zostało znormalizowane
+      ani zwalidowane. Żaden pojedynczy wskaźnik ani ich kombinacja nie rozstrzyga o obecności ADHD —
+      rozpoznanie stawia się na podstawie wywiadu klinicznego wobec kryteriów DSM-5 lub ICD-11,
+      z danymi z co najmniej dwóch środowisk i z historią rozwojową.</p>
+    <p class="small">Ten sam profil — wysokie τ, wysoki odsetek odpływania, słabe wykrywanie bezsensu — daje
+      też niewyspanie, lęk, depresja, ból, hipotyreoza i zwykła nuda. Traktuj wynik jako opis zachowania
+      w jednej sesji, a nie jako cechę osoby.</p>
+  </section>`;
+
+  r.style.display = "";
+  window.scrollTo(0,0);
+
+  const payload = {
+    meta:{version:"0.1", startedAt:new Date().toISOString(), ua:navigator.userAgent,
+          screen:`${screen.width}x${screen.height}`, short:$("short").checked},
+    lines:S.lines.map((L,i)=>({...L, resid:Math.round(M.resid[i])})),
+    probes:S.probes, quiz:S.quiz, events:S.events,
+    metrics:{tau:M.eg.tau, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
+             dprime:M.dprime, hits:M.hits, misses:M.miss, falseAlarms:M.fa, detectLatency:M.lat,
+             mwRate:M.mwRate, preProbeSdRatio:(M.preMW&&M.preOn)?M.preMW/M.preOn:null,
+             distractorCost:M.distCost, distractorLagCost:M.lagCost, distractorClicks:M.clicks,
+             regressions:M.regressions, premature:M.premature, blurCount:M.blurCount,
+             blurTotalMs:M.blurTotal, comprehension:M.acc, wpm:M.wpm, medianKeyHoldMs:M.hold}
+  };
+  const json = JSON.stringify(payload, null, 1);
+  $("dump").value = json;
+  $("copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(json); $("copy").textContent = "Skopiowano"; }
+    catch { $("dump").select(); $("copy").textContent = "Zaznaczono — użyj Ctrl+C"; }
+    setTimeout(()=>$("copy").textContent="Skopiuj JSON", 2200);
+  });
+  const a = $("dl");
+  a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
+  a.download = `czytnik-${Date.now()}.json`;
+  $("again").addEventListener("click", ()=>location.reload());
+
+  drawTrace(M);
+  matchMedia("(prefers-color-scheme:dark)").addEventListener("change", ()=>drawTrace(M));
+  addEventListener("resize", ()=>drawTrace(M));
+}
+
+/* ---------- wykres przebiegu ---------- */
+function drawTrace(M){
+  const cv = $("trace"); if (!cv) return;
+  const css = getComputedStyle(document.documentElement);
+  const col = n => css.getPropertyValue(n).trim();
+  const box = cv.parentElement.clientWidth;
+  const W = Math.max(box, M.rows.length * 9), H = 260, dpr = devicePixelRatio || 1;
+  cv.style.width = W+"px"; cv.width = W*dpr; cv.height = H*dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+
+  const padL=44, padR=12, padT=16, padB=34;
+  const n = M.rows.length;
+  const lim = Math.max(...M.resid.map(Math.abs), 300) * 1.1;
+  const x = i => padL + (n<2?0:i*(W-padL-padR)/(n-1));
+  const y = v => padT + (1 - (v+lim)/(2*lim)) * (H-padT-padB);
+
+  /* pasma dystraktorów */
+  g.fillStyle = col("--warn") + "33";
+  M.rows.forEach((r,i)=>{ if (r.distractor) g.fillRect(x(i)-3, padT, 6, H-padT-padB); });
+
+  /* granice tekstów */
+  g.strokeStyle = col("--line"); g.lineWidth = 1;
+  g.font = '10px "IBM Plex Mono", monospace';
+  M.rows.forEach((r,i)=>{
+    const boundary = i===0 || r.passage!==M.rows[i-1].passage;
+    if (!boundary) return;
+    if (i){ g.beginPath(); g.moveTo(x(i)-4, padT); g.lineTo(x(i)-4, H-padB); g.stroke(); }
+    g.fillStyle = col("--ink-2");
+    g.fillText(r.passage, x(i)+3, H-padB-4);
+  });
+
+  /* oś zera i etykiety */
+  g.strokeStyle = col("--line"); g.setLineDash([2,3]);
+  [ -lim/2, 0, lim/2 ].forEach(v=>{ g.beginPath(); g.moveTo(padL, y(v)); g.lineTo(W-padR, y(v)); g.stroke(); });
+  g.setLineDash([]);
+  g.fillStyle = col("--ink-2"); g.font = '10px "IBM Plex Mono", monospace'; g.textAlign="right";
+  [ -lim/2, 0, lim/2 ].forEach(v=>{ g.fillText((v>0?"+":"")+Math.round(v/100)*100, padL-6, y(v)+3); });
+  g.textAlign="left";
+  g.fillText("ms wolniej ↑", 4, padT+8);
+
+  /* przebieg */
+  g.strokeStyle = col("--signal"); g.lineWidth = 1.6; g.beginPath();
+  M.resid.forEach((v,i)=> i? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
+  g.stroke();
+  g.fillStyle = col("--signal");
+  M.resid.forEach((v,i)=>{ g.beginPath(); g.arc(x(i), y(v), 1.9, 0, 7); g.fill(); });
+
+  /* anomalie */
+  M.rows.forEach((r,i)=>{
+    if (!r.anomaly) return;
+    const detected = r.flagged || (M.rows[i+1] && M.rows[i+1].flagged && M.rows[i+1].passage===r.passage);
+    g.beginPath();
+    g.moveTo(x(i), y(M.resid[i])-7); g.lineTo(x(i)+5, y(M.resid[i]));
+    g.lineTo(x(i), y(M.resid[i])+7); g.lineTo(x(i)-5, y(M.resid[i])); g.closePath();
+    if (detected){ g.strokeStyle = col("--crit"); g.lineWidth = 2; g.stroke(); }
+    else { g.fillStyle = col("--crit"); g.fill(); }
+  });
+
+  /* sondy myśli */
+  const mwKeys = ["mw-aware","mw-unaware","blank"];
+  S.probes.forEach(p=>{
+    const mw = mwKeys.includes(p.key);
+    g.fillStyle = mw ? col("--crit") : col("--ink-2");
+    g.fillRect(x(p.lineIdx)-1, H-padB+5, mw?3:2, mw?11:7);
+  });
+
+  g.fillStyle = col("--ink-2"); g.font='10px "IBM Plex Mono", monospace';
+  g.fillText("kolejne linie →", padL, H-5);
+}
+</script>
