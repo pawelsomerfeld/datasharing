@@ -49,6 +49,7 @@ a{color:var(--signal)}
 button{font:inherit; cursor:pointer; border-radius:2px; transition:background .12s,border-color .12s}
 .btn{background:var(--signal); color:var(--bg); border:1px solid var(--signal); padding:.6rem 1.4rem; font-weight:500}
 .btn:hover{filter:brightness(1.12)}
+.btn:disabled,.btn:disabled:hover{opacity:.4; filter:none; cursor:not-allowed}
 .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line); padding:.6rem 1.1rem}
 .btn-ghost:hover{background:var(--surface-2)}
 :focus-visible{outline:2px solid var(--signal); outline-offset:2px}
@@ -68,6 +69,15 @@ kbd{
 #form-warning:empty{display:none}
 .radio-row{display:flex; gap:var(--s5); flex-wrap:wrap}
 .radio-row label{display:flex; gap:var(--s2); align-items:center; cursor:pointer}
+.fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:var(--s4)}
+.field{display:flex; flex-direction:column; gap:.3rem}
+.field > span{font-size:.8rem; color:var(--ink-2)}
+.field input,.field select{
+  font:inherit; font-size:.92rem; padding:.45rem .6rem; border:1px solid var(--line);
+  border-radius:2px; background:var(--bg); color:var(--ink); width:100%;
+}
+.store{display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap}
+.store .count{font-family:"IBM Plex Mono",monospace; font-size:1.3rem; font-variant-numeric:tabular-nums}
 input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 
 /* ---------- stage ---------- */
@@ -113,8 +123,14 @@ input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 .opt .k{font-family:"IBM Plex Mono",monospace; color:var(--stage-sig); font-size:.85rem; flex:none; width:1.2rem}
 
 /* ---------- results ---------- */
-.metrics{display:grid; grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line)}
-.metric{background:var(--surface); padding:var(--s4) var(--s5); display:flex; flex-direction:column; gap:.15rem}
+.metrics{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr));
+  background:var(--surface); border:1px solid var(--line); border-width:1px 0 0 1px;
+}
+.metric{
+  background:var(--surface); padding:var(--s4) var(--s5); display:flex; flex-direction:column; gap:.15rem;
+  border:1px solid var(--line); border-width:0 1px 1px 0;
+}
 .metric .m-label{font-size:.75rem; letter-spacing:.02em; color:var(--ink-2); font-family:"IBM Plex Mono",monospace}
 .metric .m-val{font-family:"IBM Plex Mono",monospace; font-size:1.55rem; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
 .metric .m-val.sm{font-size:1.05rem; line-height:1.4}
@@ -146,7 +162,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.2</p>
+    <p class="eyebrow">Prototyp badawczy · v0.3</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -157,8 +173,9 @@ textarea{
   <section class="stack g4">
     <h2>Jak to wygląda</h2>
     <p class="muted" style="max-width:38rem">
-      Trzy popularnonaukowe teksty, po 26 linii każdy. Widzisz zawsze jedną linię naraz i sam decydujesz,
-      kiedy przejść dalej. Po każdym tekście — cztery pytania o treść. Całość: 12–18 minut.
+      Zaczynamy od krótkiej części próbnej, która nie liczy się do wyniku. Potem trzy popularnonaukowe
+      teksty po 26 linii. Widzisz zawsze jedną linię naraz i sam decydujesz, kiedy przejść dalej.
+      Po każdym tekście — cztery pytania o treść. Całość: 15–20 minut.
     </p>
     <div class="card stack g4">
       <div class="keylist">
@@ -183,6 +200,28 @@ textarea{
         Twój umysł. Odpowiadaj szczerze — „myślałem o czymś innym" jest tu poprawną i użyteczną odpowiedzią.</p>
       <p class="small"><strong>Nie zmieniaj kart ani okna.</strong> Jeśli to zrobisz, zostanie to zarejestrowane jako
         przerwa — to również jest wskaźnik, a nie oszustwo.</p>
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <h2>Metryczka</h2>
+    <p class="small muted" style="max-width:38rem">Wypełnia badacz albo badany przed startem.
+      Bez kodu nie da się połączyć dwóch sesji tej samej osoby, więc retest byłby niemożliwy.
+      Pozostałe pola to współzmienne, które trzeba mieć, żeby w ogóle rozmawiać o wyniku —
+      niewyspanie i kofeina dają ten sam profil co ADHD.</p>
+    <div class="fields" id="meta-fields"></div>
+    <p class="small muted">Odpowiedzi o sen, kofeinę, leki i rozpoznanie to dane o zdrowiu.
+      Plik z wynikiem staje się przez nie danymi szczególnej kategorii — przechowuj go tak jak dokumentację badania.</p>
+  </section>
+
+  <section class="stack g4" id="store-panel" hidden>
+    <h2>Zebrane sesje</h2>
+    <div class="card store">
+      <span class="count" id="store-count">0</span>
+      <span class="small muted" style="flex:1; min-width:12rem" id="store-note"></span>
+      <button class="btn-ghost" id="store-json">Pobierz wszystkie (JSON)</button>
+      <button class="btn-ghost" id="store-csv">Pobierz tabelę (CSV)</button>
+      <button class="btn-ghost" id="store-clear">Wyczyść</button>
     </div>
   </section>
 
@@ -228,6 +267,18 @@ textarea{
     </div>
     <div class="stack g2" id="probe-opts"></div>
     <p class="small" style="color:var(--stage-dim)">Wybierz myszą albo klawiszem 1–5.</p>
+  </div>
+</div>
+
+<!-- ============ 3b. KONIEC CZĘŚCI PRÓBNEJ ============ -->
+<div class="overlay" id="after-practice">
+  <div class="stack g5" style="max-width:34rem; width:100%">
+    <div class="stack g2">
+      <p class="eyebrow" style="color:var(--stage-sig)">Koniec części próbnej</p>
+      <h2 id="ap-head"></h2>
+    </div>
+    <p id="ap-body" style="color:var(--stage-dim)"></p>
+    <button class="btn" id="ap-go" style="align-self:flex-start">Zaczynamy pomiar</button>
   </div>
 </div>
 
@@ -498,6 +549,39 @@ B: {label:"Forma B", passages:[
 }]}
 };
 
+/* Blok próbny. Pierwsze naciśnięcia spacji mierzą naukę interfejsu, nie
+   uwagę — ten tekst jest po to, żeby ta nauka odbyła się poza pomiarem.
+   Zawiera jedną linię bez sensu i jedno powiadomienie, bo obu rzeczy
+   trzeba się nauczyć, zanim zaczną coś znaczyć. Nie wchodzi do wskaźników. */
+const PRACTICE = {
+  id:"proba", title:"Część próbna", dist:[7], probe:[],
+  lines:[
+    "Zanim wprowadzono strefy czasowe, każde miasto miało własną godzinę.",
+    "Zegar ustawiano według górowania słońca nad danym miejscem.",
+    "Przy podróży konnej różnica kilku minut nie miała żadnego znaczenia.",
+    {t:"Zegary regulowano wtedy, prosząc słońce o punktualniejsze górowanie.", a:1},
+    "Prawdziwy problem pojawił się dopiero wraz z rozkładami jazdy kolei.",
+    "Ustalono więc czas urzędowy, wspólny dla całych obszarów.",
+    "Południk zerowy przyjęto w Greenwich w tysiąc osiemset osiemdziesiątym czwartym roku.",
+    "Dziś część krajów przesuwa swoje strefy ze względów politycznych."
+  ],
+  questions:[]
+};
+
+/* Metryczka: współzmienne, bez których wyniku nie da się zinterpretować. */
+const META_FIELDS = [
+  {k:"code", label:"Kod badanego *", type:"text", ph:"np. K07",
+   hint:"Nie imię i nazwisko. Kod musi pozwolić Ci połączyć retest."},
+  {k:"age", label:"Wiek", type:"number", min:12, max:99},
+  {k:"education", label:"Wykształcenie", type:"select",
+   opts:["","podstawowe","zasadnicze zawodowe","średnie","wyższe licencjackie","wyższe magisterskie lub wyżej"]},
+  {k:"sleep", label:"Sen ostatniej nocy (godz.)", type:"number", min:0, max:16, step:0.5},
+  {k:"caffeine", label:"Kofeina w ostatnich 4 godz.", type:"select", opts:["","nie","tak"]},
+  {k:"meds", label:"Leki wpływające na uwagę dziś", type:"select", opts:["","nie","tak","wolę nie podawać"]},
+  {k:"diagnosis", label:"Rozpoznanie ADHD", type:"select",
+   opts:["","nie","tak","w trakcie diagnozy","wolę nie podawać"]}
+];
+
 let PASSAGES = FORMS.A.passages;   // ustawiane przy starcie sesji
 
 const DISTRACTORS = [
@@ -521,7 +605,8 @@ const PROBE_OPTS = [
 /* ---------- 2. STAN SESJI -------------------------------------------- */
 
 const S = {
-  t0:0, form:"A", order:[], pi:0, li:0,
+  t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null,
+  order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
   events:[],         // surowy log zdarzeń
   probes:[], quiz:[],
@@ -593,39 +678,186 @@ function buildFormPicker(){
     console.warn("validateForms():", bad);
   }
 }
-buildFormPicker();
+function buildMetaFields(){
+  const box = $("meta-fields");
+  META_FIELDS.forEach(f => {
+    const wrap = document.createElement("label");
+    wrap.className = "field";
+    const ctl = f.type === "select"
+      ? `<select id="meta-${f.k}">` + f.opts.map(o=>`<option value="${o}">${o || "—"}</option>`).join("") + `</select>`
+      : `<input id="meta-${f.k}" type="${f.type}"${f.ph?` placeholder="${f.ph}"`:""}` +
+        `${f.min!==undefined?` min="${f.min}"`:""}${f.max!==undefined?` max="${f.max}"`:""}` +
+        `${f.step!==undefined?` step="${f.step}"`:""}>`;
+    wrap.innerHTML = `<span>${f.label}</span>${ctl}` + (f.hint?`<span>${f.hint}</span>`:"");
+    box.appendChild(wrap);
+  });
+  $("meta-code").addEventListener("input", refreshStart);
+}
 
-$("ack").addEventListener("change", e => $("start").disabled = !e.target.checked);
+function readMeta(){
+  const m = {};
+  META_FIELDS.forEach(f => {
+    const v = $("meta-" + f.k).value.trim();
+    m[f.k] = v === "" ? null : (f.type === "number" ? Number(v) : v);
+  });
+  return m;
+}
+
+function refreshStart(){
+  $("start").disabled = !($("ack").checked && $("meta-code").value.trim() !== "");
+}
+
+/* ---------- magazyn sesji w przeglądarce ----------
+   Zapis jest bezwarunkowy: badacz, który zapomni pobrać plik, i tak nie
+   traci danych. Nic nie wychodzi poza tę przeglądarkę.               */
+const STORE_KEY = "czytnik-uwagi-sesje-v1";
+
+function loadStore(){
+  try { const v = JSON.parse(localStorage.getItem(STORE_KEY)); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+function pushStore(payload){
+  try {
+    const all = loadStore(); all.push(payload);
+    localStorage.setItem(STORE_KEY, JSON.stringify(all));
+    return {ok:true, n:all.length};
+  } catch (e) {
+    return {ok:false, name:(e && e.name) || "błąd"};
+  }
+}
+function renderStore(){
+  const all = loadStore();
+  $("store-panel").hidden = all.length === 0;
+  if (!all.length) return;
+  $("store-count").textContent = all.length;
+  const codes = new Set(all.map(x => x.meta && x.meta.code).filter(Boolean));
+  $("store-note").textContent = `${codes.size} ${codes.size===1?"kod":"kodów"} badanych. `
+    + "Zapisane w tej przeglądarce — wyczyszczenie danych witryny je usunie.";
+}
+
+function toCSV(all){
+  const meta = ["code","form","startedAt","short","age","education","sleep","caffeine","meds","diagnosis"];
+  const met  = ["tau","tailRatio","mu","sigma","cv","slowBand","dprime","hits","misses","falseAlarms",
+                "detectLatency","mwRate","preProbeSdRatio","distractorCost","distractorClicks",
+                "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
+  const head = [...meta, ...met, "distractorLag1","distractorLag2","distractorLag3"];
+  const cell = v => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "number") return Number.isFinite(v) ? String(Math.round(v*1e4)/1e4) : "";
+    const t = String(v);
+    return /[",\n]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t;
+  };
+  const rows = all.map(x => {
+    const lag = (x.metrics && x.metrics.distractorLagCost) || [];
+    return [...meta.map(k => cell(x.meta ? x.meta[k] : null)),
+            ...met.map(k => cell(x.metrics ? x.metrics[k] : null)),
+            ...[0,1,2].map(i => cell(lag[i]))].join(",");
+  });
+  return [head.join(","), ...rows].join("\n");
+}
+
+/* Jeden kanał zapisu pliku: na stronie opublikowanej przez zgodę widza,
+   przy otwarciu z dysku — zwykłym linkiem blob.                        */
+async function offerFile(filename, text, say){
+  let ns = null;
+  try { ns = (typeof claude !== "undefined" && claude.use) ? await claude.use("downloads") : null; } catch {}
+  if (ns){
+    try { await ns.save({filename, data:text}); say && say("Zapisano."); }
+    catch (e){ say && say(e && e.code === "declined" ? "Zapis anulowany." : "Zapis niedostępny — użyj kopiowania."); }
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type:"text/plain;charset=utf-8"}));
+  a.download = filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+const stamp = () => new Date().toISOString().slice(0,10);
+$("store-json").addEventListener("click", ()=> offerFile(`czytnik-sesje-${stamp()}.json`, JSON.stringify(loadStore(), null, 1)));
+$("store-csv").addEventListener("click",  ()=> offerFile(`czytnik-sesje-${stamp()}.csv`, toCSV(loadStore())));
+$("store-clear").addEventListener("click", () => {
+  const n = loadStore().length;
+  if (!confirm(`Usunąć ${n} zapisanych sesji z tej przeglądarki? Tego nie da się cofnąć.`)) return;
+  try { localStorage.removeItem(STORE_KEY); } catch {}
+  renderStore();
+});
+
+buildFormPicker();
+buildMetaFields();
+renderStore();
+
+$("ack").addEventListener("change", refreshStart);
 $("start").addEventListener("click", begin);
+
+/* Odświeżenie albo zamknięcie karty w połowie kasuje kwadrans pracy
+   badanego — dane żyją tylko w pamięci do momentu zakończenia sesji.  */
+function guardUnload(e){ e.preventDefault(); e.returnValue = ""; return ""; }
 
 function begin(){
   S.t0 = now();
+  S.meta = readMeta();
   S.form = document.querySelector('input[name="form"]:checked').value;
   PASSAGES = FORMS[S.form].passages;
   S.order = $("short").checked ? [0] : PASSAGES.map((_,i)=>i);
   log("session-start", {form:S.form, short:$("short").checked, screen:`${screen.width}x${screen.height}`});
-  buildLineIndex();
   $("intro").style.display = "none";
-  $("stage").classList.add("on");
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("keyup", onKeyUp);
   window.addEventListener("blur", onBlur);
   window.addEventListener("focus", onFocus);
+  window.addEventListener("beforeunload", guardUnload);
   $("toast").addEventListener("click", onToastClick);
+  $("ap-go").addEventListener("click", startMeasured);
+
+  S.practice = true;                       // najpierw blok próbny, poza pomiarem
+  S.lines = buildLines([PRACTICE], [0]);
+  S.li = 0;
+  log("practice-start", {});
+  $("stage").classList.add("on");
   showLine();
 }
 
-function buildLineIndex(){
-  S.lines = [];
-  S.order.forEach(pIdx => {
-    const p = PASSAGES[pIdx];
-    p.lines.forEach((l, i) => S.lines.push({
-      passage:p.id, pIdx, n:i+1, text:lineText(l),
+function buildLines(passages, order){
+  const out = [];
+  order.forEach(pIdx => {
+    const p = passages[pIdx];
+    p.lines.forEach((l, i) => out.push({
+      passage:p.id, pIdx, title:p.title, of:p.lines.length, n:i+1, text:lineText(l),
       chars:lineText(l).length, words:lineText(l).split(/\s+/).length,
       anomaly:isAnom(l), distractor:p.dist.includes(i+1), probeAfter:p.probe.includes(i+1),
       rt:null, visits:0, regressedFrom:0, flagged:false, flagRt:null
     }));
   });
+  return out;
+}
+
+/* Informacja zwrotna z części próbnej: bez niej badany nie wie, czego
+   właściwie ma szukać, i pierwszy tekst pomiarowy uczy go zadania.   */
+function endPractice(){
+  S.practiceLines = S.lines;
+  const anom = S.lines.find(l => l.anomaly);
+  S.practiceCaught = !!(anom && anom.flagged);
+  log("practice-end", {caught:S.practiceCaught});
+  $("stage").classList.remove("on");
+  $("ap-head").textContent = S.practiceCaught
+    ? "Dokładnie o to chodzi."
+    : "W tym tekście była jedna linia bez sensu.";
+  $("ap-body").textContent = S.practiceCaught
+    ? "Zdanie o proszeniu słońca o punktualniejsze górowanie było tym absurdem. Dalej wszystko wygląda tak samo, tylko teksty są dłuższe."
+    : "Zdanie o proszeniu słońca o punktualniejsze górowanie nie miało sensu — w takim miejscu naciśnij X. Nie szukaj ich na siłę; chodzi o to, czy zauważysz je, czytając normalnie.";
+  $("after-practice").classList.add("on");
+  $("ap-go").focus();
+}
+
+function startMeasured(){
+  $("after-practice").classList.remove("on");
+  S.practice = false;
+  S.lines = buildLines(PASSAGES, S.order);
+  S.li = 0;
+  S.distractorShown = 0;
+  log("measured-start", {});
+  $("stage").classList.add("on");
+  showLine();
 }
 
 function showLine(){
@@ -633,7 +865,7 @@ function showLine(){
   const el = $("line");
   el.textContent = L.text;
   el.classList.remove("flash");
-  $("foot-left").textContent = `${PASSAGES[L.pIdx].title} · ${L.n}/${PASSAGES[L.pIdx].lines.length}`;
+  $("foot-left").textContent = `${L.title} · ${L.n}/${L.of}`;
   $("progress").style.width = (S.li / S.lines.length * 100) + "%";
   S.flaggedThisLine = L.flagged;
   L.visits++;
@@ -660,6 +892,7 @@ function onToastClick(){
 }
 
 function onKeyDown(e){
+  if ($("after-practice").classList.contains("on")) return;
   if ($("probe").classList.contains("on")) return handleProbeKey(e);
   if ($("quiz").classList.contains("on"))  return handleQuizKey(e);
   if (!$("stage").classList.contains("on")) return;
@@ -721,7 +954,8 @@ function advance(){
 function nextLine(){
   const cur = S.lines[S.li];
   const nxt = S.lines[S.li + 1];
-  if (!nxt || nxt.pIdx !== cur.pIdx){        // koniec tekstu → pytania
+  if (!nxt || nxt.pIdx !== cur.pIdx){        // koniec tekstu
+    if (S.practice) return endPractice();
     $("stage").classList.remove("on");
     return openQuiz(cur.pIdx, 0);
   }
@@ -806,6 +1040,7 @@ function onFocus(){
 function finish(){
   document.removeEventListener("keydown", onKeyDown);
   document.removeEventListener("keyup", onKeyUp);
+  window.removeEventListener("beforeunload", guardUnload);
   log("session-end", {});
   $("stage").classList.remove("on");
   renderResults(computeMetrics());
@@ -851,9 +1086,18 @@ function exGauss(xs){
   const m = mean(xs), s = sd(xs);
   const m3 = mean(xs.map(x=>(x-m)**3));
   const skew = s>0 ? m3/(s**3) : 0;
-  if (skew <= 0.01) return {mu:m, sigma:s, tau:0};
+  /* Bez prawostronnej skośności estymator momentowy nie ma rozwiązania.
+     Zwracamy null, a nie zero — zero wyglądałoby jak bardzo dobry wynik. */
+  if (skew <= 0.01) return {mu:m, sigma:s, tau:null, skew};
   const tau = s * Math.pow(skew/2, 1/3);
-  return {mu:m - tau, sigma:Math.sqrt(Math.max(s*s - tau*tau, 0)), tau};
+  return {mu:m - tau, sigma:Math.sqrt(Math.max(s*s - tau*tau, 0)), tau, skew};
+}
+
+/* Kwantyl z interpolacją liniową. */
+function quantile(a, p){
+  if (!a.length) return null;
+  const x = [...a].sort((u,v)=>u-v), h = (x.length-1)*p, lo = Math.floor(h);
+  return x[lo] + (h-lo) * ((x[Math.min(lo+1, x.length-1)]) - x[lo]);
 }
 
 /* względna moc w paśmie wolnych oscylacji 0,03–0,07 Hz.
@@ -897,6 +1141,10 @@ function computeMetrics(){
   /* --- zmienność --- */
   const eg = exGauss(rts);
   const cv = sd(resid) / (mean(rts)||1);
+  /* Odporny odpowiednik tau: górna połowa rozkładu reszt w stosunku do
+     mediany tempa. Nigdy się nie degeneruje i nie zależy od tego, jak
+     szybko ktoś czyta.                                                */
+  const tail = (quantile(resid, 0.9) - quantile(resid, 0.5)) / (med(rts) || 1);
   const slow = bandPower(resid, mean(rts)/1000, 0.03, 0.07);
 
   /* --- wykrywanie bezsensu (hit także gdy flaga padła linię później) --- */
@@ -949,7 +1197,7 @@ function computeMetrics(){
   const totMs = rows.reduce((a,r)=>a+r.rt,0);
   const wpm = totMs>0 ? rows.reduce((a,r)=>a+r.words,0)/(totMs/60000) : null;
 
-  return {rows, resid, eg, cv, slow, dprime, hits, miss, fa, lat:med(lat),
+  return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
     mwRate, preMW, preOn, distCost, lagCost, clicks, premature, regressions, acc, wpm,
     blurCount:S.blurCount, blurTotal:S.blurTotal,
     duration:(S.events[S.events.length-1].t)/60000,
@@ -989,7 +1237,7 @@ function renderResults(M){
 
   r.innerHTML = `
   <header class="stack g3">
-    <p class="eyebrow">${FORMS[S.form].label} · ${new Date().toLocaleString("pl-PL")}</p>
+    <p class="eyebrow">${S.meta.code ? S.meta.code + " · " : ""}${FORMS[S.form].label} · ${new Date().toLocaleString("pl-PL")}</p>
     <h1>Profil uwagi w czytaniu</h1>
     <p class="lede">${M.rows.length} linii · ${fmt(M.duration,1)} min · ${fmt(M.wpm,0)} słów/min ·
       rozumienie ${accPct}</p>
@@ -1021,7 +1269,12 @@ function renderResults(M){
       <p class="small muted">Najlepiej replikowana grupa wskaźników. Chodzi o rozrzut, nie o średnie tempo.</p>
     </div>
     <div class="metrics">
-      ${metricCard("τ — ogon wolnych linii", fmt(M.eg.tau,0), " ms", "Składowa wykładnicza rozkładu czasów. Rośnie, gdy pojedyncze linie zajmują nieproporcjonalnie długo — zwykle wtedy, gdy uwaga na chwilę odpływa.", band(M.eg.tau,180,320,1))}
+      ${metricCard("τ — ogon wolnych linii", fmt(M.eg.tau,0), M.eg.tau===null?"":" ms",
+        M.eg.tau===null
+          ? `Estymator momentowy nie ma tu rozwiązania: rozkład czasów nie jest prawostronnie skośny (skośność ${fmt(M.eg.skew,2)}). Zdarza się przy krótkiej sesji albo bardzo równym tempie. Użyj karty obok.`
+          : "Składowa wykładnicza rozkładu czasów. Rośnie, gdy pojedyncze linie zajmują nieproporcjonalnie długo — zwykle wtedy, gdy uwaga na chwilę odpływa.",
+        band(M.eg.tau,180,320,1))}
+      ${metricCard("Ogon odporny", fmt(M.tail,2), "", "Górna połowa rozkładu reszt (P90 minus mediana) w stosunku do mediany tempa. Mierzy to samo co τ, ale nigdy się nie degeneruje i nie zależy od szybkości czytania.", band(M.tail,0.30,0.50,1))}
       ${metricCard("Współczynnik zmienności", fmt(M.cv,2), "", "Rozrzut reszt po usunięciu wpływu długości linii i zmęczenia, w stosunku do średniego czasu linii.", band(M.cv,0.35,0.55,1))}
       ${metricCard("Moc pasma 0,03–0,07 Hz", slowPct, "", "Udział wolnych, ~20–30-sekundowych oscylacji w całej zmienności tempa. Falowanie uwagi zamiast pojedynczych potknięć.", band(M.slow,0.15,0.25,1))}
       ${metricCard("μ — tempo bazowe", fmt(M.eg.mu,0), " ms", "Typowy czas linii po odjęciu ogona. Sam w sobie słabo różnicuje — jest tłem dla τ.", "")}
@@ -1079,6 +1332,7 @@ function renderResults(M){
         <button class="btn-ghost" id="again">Jeszcze raz</button>
         <span class="small muted" id="dl-status"></span>
       </div>
+      <p class="small muted" id="store-result"></p>
     </div>
   </section>
 
@@ -1096,11 +1350,13 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.2", form:S.form, startedAt:new Date().toISOString(), ua:navigator.userAgent,
-          screen:`${screen.width}x${screen.height}`, short:$("short").checked},
+    meta:{version:"0.3", ...S.meta, form:S.form, startedAt:new Date().toISOString(),
+          ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
+          short:$("short").checked, practiceCaught:S.practiceCaught},
     lines:S.lines.map((L,i)=>({...L, resid:Math.round(M.resid[i])})),
+    practiceLines:S.practiceLines,
     probes:S.probes, quiz:S.quiz, events:S.events,
-    metrics:{tau:M.eg.tau, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
+    metrics:{tau:M.eg.tau, tailRatio:M.tail, skew:M.eg.skew, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
              dprime:M.dprime, hits:M.hits, misses:M.miss, falseAlarms:M.fa, detectLatency:M.lat,
              mwRate:M.mwRate, preProbeSdRatio:(M.preMW&&M.preOn)?M.preMW/M.preOn:null,
              distractorCost:M.distCost, distractorLagCost:M.lagCost, distractorClicks:M.clicks,
@@ -1114,24 +1370,23 @@ function renderResults(M){
     catch { $("dump").select(); $("copy").textContent = "Zaznaczono — użyj Ctrl+C"; }
     setTimeout(()=>$("copy").textContent="Skopiuj JSON", 2200);
   });
-  /* Zapis pliku: na stronie opublikowanej przechodzi przez zgodę widza,
-     przy otwarciu z dysku — zwykłym linkiem blob.                        */
-  const fname = `czytnik-${Date.now()}.json`;
-  const say = t => { $("dl-status").textContent = t; setTimeout(()=>$("dl-status").textContent="", 4000); };
-  $("dl").addEventListener("click", async () => {
-    let ns = null;
-    try { ns = (typeof claude !== "undefined" && claude.use) ? await claude.use("downloads") : null; } catch {}
-    if (ns){
-      try { await ns.save({filename:fname, data:json}); say("Zapisano."); }
-      catch (e){ say(e && e.code === "declined" ? "Zapis anulowany." : "Zapis niedostępny — użyj „Skopiuj JSON”."); }
-      return;
-    }
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
-    a.download = fname; a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+
+  const say = t => { $("dl-status").textContent = t; setTimeout(()=>$("dl-status").textContent="", 5000); };
+  const fname = `czytnik-${S.meta.code || "bez-kodu"}-${S.form}-${stamp()}.json`;
+  $("dl").addEventListener("click", ()=> offerFile(fname, json, say));
+  $("again").addEventListener("click", () => {
+    window.removeEventListener("beforeunload", guardUnload);
+    location.reload();
   });
-  $("again").addEventListener("click", ()=>location.reload());
+
+  /* Zapis do magazynu przeglądarki od razu, bez pytania: badacz, który
+     zapomni pobrać plik, i tak nie traci sesji.                        */
+  const st = pushStore(payload);
+  $("store-result").textContent = st.ok
+    ? `Sesja zapisana w tej przeglądarce (łącznie ${st.n}). Komplet pobierzesz z ekranu startowego.`
+    : `Nie udało się zapisać sesji w przeglądarce (${st.name}). Pobierz plik teraz — inaczej dane przepadną.`;
+  $("store-result").className = "small " + (st.ok ? "muted" : "");
+  if (!st.ok) $("store-result").style.color = "var(--crit)";
 
   drawTrace(M);
   matchMedia("(prefers-color-scheme:dark)").addEventListener("change", ()=>drawTrace(M));

@@ -38,7 +38,13 @@ rozumieniu, a oba dają identyczny wynik „słaba uwaga" w skali samoopisowej.
 
 ## Co dokładnie się dzieje
 
-Trzy teksty popularnonaukowe po 26 linii. Prezentacja **samosterowana, jedna linia
+Sesja zaczyna się od **bloku próbnego** — ośmiu linii z jedną wplecioną bezsensowną
+i jednym powiadomieniem — zakończonego informacją zwrotną. Pierwsze naciśnięcia spacji
+mierzą naukę interfejsu, a nie uwagę; blok próbny przenosi tę naukę poza pomiar,
+a przy okazji pokazuje badanemu, czego właściwie ma szukać. Nie wchodzi do żadnego
+wskaźnika, ale trafia do pliku wyjściowego jako `practiceLines`.
+
+Potem trzy teksty popularnonaukowe po 26 linii. Prezentacja **samosterowana, jedna linia
 naraz** (self-paced reading, wariant niekumulacyjny) — badany sam decyduje, kiedy
 przejść dalej, więc czas linii to czysty czas przetwarzania.
 
@@ -71,6 +77,40 @@ utrata fokusu okna. Na końcu każdego tekstu — cztery pytania o treść.
 
 Czas: 12–18 minut, tryb skrócony ok. 5.
 
+## Metryczka
+
+Przed startem zbierany jest kod badanego (pole wymagane) oraz współzmienne: wiek,
+wykształcenie, długość snu, kofeina, leki wpływające na uwagę i ewentualne rozpoznanie.
+
+Kod jest wymagany nie z pedanterii — bez niego nie da się połączyć dwóch sesji tej samej
+osoby, a więc retest, o który cały ten projekt się opiera, jest niewykonalny. Pole ma
+przyjmować pseudonim, nie imię i nazwisko.
+
+Pozostałe pola to bezpośrednia odpowiedź na ograniczenie opisane niżej: niewyspanie,
+kofeina i leki dają ten sam profil co ADHD. Jeśli ich nie zbierzesz, nie da się o wyniku
+powiedzieć nic sensownego. **Odpowiedzi o sen, leki i rozpoznanie to dane o zdrowiu** —
+plik wyjściowy staje się przez nie danymi szczególnej kategorii w rozumieniu art. 9 RODO
+i wymaga takiej ochrony jak reszta dokumentacji badania.
+
+## Zbieranie danych z wielu osób
+
+Każda zakończona sesja zapisuje się automatycznie w `localStorage` przeglądarki — badacz,
+który zapomni pobrać plik, nie traci danych. Ekran startowy pokazuje licznik zebranych
+sesji i trzy przyciski:
+
+- **Pobierz wszystkie (JSON)** — komplet z pełnymi logami zdarzeń, do analizy skryptem
+- **Pobierz tabelę (CSV)** — jeden wiersz na sesję, metryczka plus wszystkie wskaźniki,
+  gotowe do wczytania w R, Pythonie, JASP-ie, jamovi czy SPSS-ie
+- **Wyczyść** — z potwierdzeniem
+
+CSV używa przecinka jako separatora i kropki dziesiętnej, czyli konwencji, którą czytają
+wszystkie wymienione programy. Excel z polską lokalizacją potraktuje go jako jedną kolumnę —
+tam użyj importu z jawnym wskazaniem separatora, a nie dwukliku.
+
+Zapis jest lokalny dla przeglądarki i profilu. Wyczyszczenie danych witryny albo praca
+w oknie prywatnym go likwiduje, dlatego pobieraj komplet po każdej serii badań.
+Jeśli miejsce się skończy, panel po sesji powie o tym wprost, zamiast po cichu zgubić dane.
+
 ## Wskaźniki i dlaczego akurat te
 
 Kluczowa decyzja: **nie interesuje nas średnie tempo, tylko rozrzut i jego struktura
@@ -83,8 +123,17 @@ w sesji`, co usuwa wpływ długości linii i efektu wprawy/zmęczenia.
 **τ (tau)** — składowa wykładnicza rozkładu ex-Gaussa, estymowana metodą momentów.
 To „ogon" nietypowo wolnych linii. W literaturze o czasach reakcji w ADHD τ jest
 konsekwentnie tym parametrem, który różnicuje grupy, podczas gdy μ (tempo bazowe)
-często nie. Jeśli w wyniku widzisz `τ = 0`, oznacza to rozkład bez prawostronnej
-skośności — u człowieka rzadkie, ale możliwe przy bardzo krótkiej sesji.
+często nie.
+
+Estymator momentowy ma jednak wadę: przy rozkładzie bez prawostronnej skośności nie ma
+rozwiązania. Narzędzie zwraca wtedy **`null`, a nie zero** — i tak też pokazuje to panel,
+razem z wartością skośności. Zero wyglądałoby jak bardzo dobry wynik, co jest dokładnie
+odwrotne do prawdy: to brak wyniku.
+
+**Ogon odporny** — dlatego obok τ stoi wskaźnik nieparametryczny: `(P90 − mediana)` reszt
+podzielone przez medianę czasu linii. Mierzy to samo zjawisko, nigdy się nie degeneruje
+i nie zależy od tego, jak szybko ktoś czyta. Jeśli τ jest nieokreślone, to jest wskaźnik,
+który należy czytać.
 
 **Moc pasma 0,03–0,07 Hz** — udział wolnych, mniej więcej 20–30-sekundowych oscylacji
 w całej zmienności tempa. Odpowiada opisom uwagi, która nie tyle się potyka, co
@@ -176,7 +225,9 @@ wieku i wykształcenia, plus osobno grupa z rozpoznaniem postawionym niezależni
 
 Ten sam profil — wysokie τ, dużo odpływania, słabe wykrywanie bezsensu — daje
 niewyspanie, lęk, depresja, ból przewlekły, niedoczynność tarczycy, leki
-przeciwhistaminowe i zwykła nuda. Zadanie mierzy **stan uwagi w jednej sesji**,
+przeciwhistaminowe i zwykła nuda. Metryczka zbiera część z tych współzmiennych,
+ale zbieranie ich to nie to samo co kontrolowanie — bez grupy porównawczej
+z zaburzeniem nastroju wynik i tak nie rozdziela tych możliwości. Zadanie mierzy **stan uwagi w jednej sesji**,
 a nie cechę osoby. Rozpoznanie ADHD wymaga wywiadu wobec kryteriów DSM-5 lub ICD-11,
 danych z co najmniej dwóch środowisk i potwierdzenia objawów w okresie rozwojowym —
 żadnej z tych rzeczy komputer nie zastąpi.
@@ -194,9 +245,18 @@ z uwagą nic wspólnego.
 ## Dane osobowe
 
 Wszystkie obliczenia dzieją się w przeglądarce, plik JSON zapisuje się lokalnie.
-Nie ma serwera, więc nie ma czego wykradać. Jeśli zbierasz dane do badania, log
-zawiera `navigator.userAgent` i rozdzielczość ekranu — usuń oba przed archiwizacją,
-o ile ich nie potrzebujesz.
+Nie ma serwera, więc nie ma czego wykradać po drodze. Log zawiera `navigator.userAgent`
+i rozdzielczość ekranu — usuń oba przed archiwizacją, o ile ich nie potrzebujesz.
+
+Nowe ryzyko wprowadza automatyczny zapis sesji w `localStorage`. Na **komputerze
+współdzielonym** — a taki bywa stanowisko badawcze — kolejni badani mają wtedy dostęp
+do metryczek i wyników poprzednich osób przez ekran startowy. Ponieważ te dane
+obejmują sen, leki i rozpoznanie, jest to art. 9 RODO. Postępowanie jest proste:
+pobierz komplet i wyczyść magazyn po każdej serii, a jeśli badani obsługują stanowisko
+sami, prowadź je w oknie prywatnym, gdzie magazyn i tak nie przeżyje zamknięcia karty.
+
+Sam kod badanego jest pseudonimem, nie anonimizacją — klucz łączący kod z osobą
+przechowuj osobno od plików wyjściowych.
 
 Uwaga na przyszłość: jeżeli dołożysz moduł eyetrackingu (niżej), wchodzisz w art. 9
 RODO — dane biometryczne, szczególna kategoria. Nagranie z kamery nie może wtedy

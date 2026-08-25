@@ -67,15 +67,28 @@ def residualize(lines):
 
 
 def ex_gaussian(xs):
-    """Estymacja metodą momentów. tau to składowa wykładnicza (ogon)."""
+    """Estymacja metodą momentów. tau to składowa wykładnicza (ogon).
+
+    Bez prawostronnej skośności estymator nie ma rozwiązania — zwracamy
+    None, nie zero. Zero czytałoby się jak bardzo dobry wynik."""
     m, s = st.fmean(xs), st.pstdev(xs)
     if s == 0:
-        return m, 0.0, 0.0
+        return m, 0.0, None, 0.0
     skew = st.fmean([(x - m) ** 3 for x in xs]) / s ** 3
     if skew <= 0.01:
-        return m, s, 0.0
+        return m, s, None, skew
     tau = s * (skew / 2) ** (1 / 3)
-    return m - tau, math.sqrt(max(s * s - tau * tau, 0.0)), tau
+    return m - tau, math.sqrt(max(s * s - tau * tau, 0.0)), tau, skew
+
+
+def quantile(a, p):
+    """Kwantyl z interpolacją liniową."""
+    if not a:
+        return None
+    x = sorted(a)
+    h = (len(x) - 1) * p
+    lo = math.floor(h)
+    return x[lo] + (h - lo) * (x[min(lo + 1, len(x) - 1)] - x[lo])
 
 
 def band_power(x, dt_s, lo, hi):
@@ -131,11 +144,15 @@ def score(session):
     rt = [float(l["rt"]) for l in lines]
     res = residualize(lines)
 
-    mu, sigma, tau = ex_gaussian(rt)
+    mu, sigma, tau, skew = ex_gaussian(rt)
     out = {
         "form": session.get("meta", {}).get("form", "?"),
+        "code": session.get("meta", {}).get("code"),
         "n_lines": len(lines),
-        "mu": mu, "sigma": sigma, "tau": tau,
+        "mu": mu, "sigma": sigma, "tau": tau, "skew": skew,
+        # Odporny odpowiednik tau: górna połowa rozkładu reszt względem
+        # mediany tempa. Nie degeneruje się i nie zależy od szybkości czytania.
+        "tail_ratio": (quantile(res, 0.9) - quantile(res, 0.5)) / (st.median(rt) or 1),
         "cv": st.pstdev(res) / st.fmean(rt),
         "slow_band": band_power(res, st.fmean(rt) / 1000, *SLOW_BAND),
     }
@@ -205,6 +222,7 @@ def score(session):
 
 LABELS = {
     "n_lines": "linii", "mu": "mu (ms)", "sigma": "sigma (ms)", "tau": "tau (ms)",
+    "tail_ratio": "ogon odporny", "skew": "skośność czasów",
     "cv": "wsp. zmienności", "slow_band": "moc 0,03-0,07 Hz", "dprime": "d' bezsens",
     "hits": "trafienia", "misses": "przeoczenia", "false_alarms": "fałszywe alarmy",
     "detect_latency": "opóźn. wykrycia (ms)", "mw_rate": "odsetek odpływania",
@@ -227,7 +245,7 @@ def show(v):
 
 def check_against_browser(sess, mine):
     """Porównuje z wartościami policzonymi w przeglądarce."""
-    pairs = [("tau", "tau"), ("cv", "cv"), ("dprime", "dprime"),
+    pairs = [("tau", "tau"), ("tail_ratio", "tailRatio"), ("cv", "cv"), ("dprime", "dprime"),
              ("slow_band", "slowBand"), ("comprehension", "comprehension"), ("wpm", "wpm")]
     bad = []
     for py, js in pairs:
@@ -280,7 +298,12 @@ def main():
     if args.json:
         print(json.dumps(mine, ensure_ascii=False, indent=2))
         return
-    print(f"# {args.path}  ·  forma {mine['form']}\n")
+    head = f"# {args.path}  ·  forma {mine['form']}"
+    if mine.get("code"):
+        head += f"  ·  kod {mine['code']}"
+    print(head + "\n")
+    if mine.get("tau") is None:
+        print("uwaga: tau nieokreślone (rozkład bez prawostronnej skośności) — czytaj ogon odporny\n")
     for k, lab in LABELS.items():
         print(f"{lab:<26}{show(mine.get(k)):>14}")
     bad = check_against_browser(sess, mine)
