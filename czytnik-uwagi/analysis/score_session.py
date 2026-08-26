@@ -28,7 +28,12 @@ try:
 except (AttributeError, ValueError):        # Windows nie ma SIGPIPE
     pass
 
-MW_KEYS = {"mw-aware", "mw-unaware", "blank"}
+# Kategorie sondy poza treścią tekstu. Stare klucze (mw-aware / mw-unaware)
+# zostają, żeby pliki sprzed przebudowy sondy nadal się liczyły.
+OFF_TASK = {"mw", "task-rel", "external", "blank", "mw-aware", "mw-unaware"}
+PROBE_CATS = {"on-task": "probe_on_task", "mw": "probe_mind_wandering",
+              "task-rel": "probe_task_related", "external": "probe_external",
+              "blank": "probe_blank"}
 PREMATURE_MS_PER_CHAR = 12.0
 SLOW_BAND = (0.03, 0.07)
 
@@ -137,7 +142,10 @@ def score(session):
     lines = session["lines"]
     probes = session.get("probes", [])
     quiz = session.get("quiz", [])
-    events = session.get("events", [])
+    # Zdarzenia z bloku próbnego odcinamy tak samo jak jego linie.
+    all_events = session.get("events", [])
+    t0m = next((e["t"] for e in all_events if e["type"] == "measured-start"), 0)
+    events = [e for e in all_events if e.get("t", 0) >= t0m]
     if any(l.get("rt") is None for l in lines):
         bad = [l["passage"] + "/" + str(l["n"]) for l in lines if l.get("rt") is None]
         sys.exit("log niekompletny — brak czasu dla linii: " + ", ".join(bad))
@@ -148,6 +156,7 @@ def score(session):
     out = {
         "form": session.get("meta", {}).get("form", "?"),
         "code": session.get("meta", {}).get("code"),
+        "salience": session.get("meta", {}).get("salience"),
         "n_lines": len(lines),
         "mu": mu, "sigma": sigma, "tau": tau, "skew": skew,
         # Odporny odpowiednik tau: górna połowa rozkładu reszt względem
@@ -185,12 +194,16 @@ def score(session):
                detect_latency=st.median(lat) if lat else None)
 
     # sondy myśli
-    out["mw_rate"] = (sum(p["key"] in MW_KEYS for p in probes) / len(probes)) if probes else None
+    out["off_task_rate"] = (sum(p["key"] in OFF_TASK for p in probes) / len(probes)) if probes else None
+    for key, name in PROBE_CATS.items():
+        out[name] = (sum(p["key"] == key for p in probes) / len(probes)) if probes else None
+    absv = [p["absorption"] for p in probes if isinstance(p.get("absorption"), (int, float))]
+    out["absorption"] = st.fmean(absv) if absv else None
 
     def pre_probe_sd(want_mw):
         vals = []
         for p in probes:
-            if (p["key"] in MW_KEYS) != want_mw:
+            if (p["key"] in OFF_TASK) != want_mw:
                 continue
             w = res[max(0, p["lineIdx"] - 3): p["lineIdx"] + 1]
             if len(w) >= 3:
@@ -209,6 +222,15 @@ def score(session):
          if i >= g and lines[i - g]["distractor"] and lines[i - g]["passage"] == l["passage"]]) else None
         for g in (1, 2, 3)]
     out["distractor_clicks"] = sum(e["type"] == "distractor-click" for e in events)
+    # Najazd kursorem na powiadomienie: orientacja uwagi bez kliknięcia.
+    shown_n = sum(e["type"] == "distractor-on" for e in events)
+    hov = [e["ms"] for e in events if e["type"] == "distractor-hover" and "ms" in e]
+    out["distractors_shown"] = shown_n
+    planned = (session.get("metrics") or {}).get("distractorsPlanned")
+    out["distractors_planned"] = planned
+    out["distractors_delivered"] = (shown_n / planned) if planned else None
+    out["distractor_hover_rate"] = (len(hov) / shown_n) if shown_n else None
+    out["distractor_hover_ms"] = st.median(hov) if hov else None
 
     # pozostałe
     out["regressions"] = sum(e["type"] == "regression" for e in events)
@@ -225,7 +247,13 @@ LABELS = {
     "tail_ratio": "ogon odporny", "skew": "skośność czasów",
     "cv": "wsp. zmienności", "slow_band": "moc 0,03-0,07 Hz", "dprime": "d' bezsens",
     "hits": "trafienia", "misses": "przeoczenia", "false_alarms": "fałszywe alarmy",
-    "detect_latency": "opóźn. wykrycia (ms)", "mw_rate": "odsetek odpływania",
+    "detect_latency": "opóźn. wykrycia (ms)", "off_task_rate": "uwaga poza tekstem",
+    "probe_on_task": "sondy: przy tekście", "probe_mind_wandering": "sondy: gdzie indziej",
+    "probe_task_related": "sondy: przy badaniu", "probe_external": "sondy: bodziec zewn.",
+    "probe_blank": "sondy: pustka", "absorption": "wciągnięcie (1-5)",
+    "distractors_shown": "powiadomień", "distractors_planned": "zaplanowanych",
+    "distractors_delivered": "dostarczonych", "distractor_hover_rate": "najazd kursorem",
+    "distractor_hover_ms": "czas do najazdu (ms)",
     "pre_probe_sd_ratio": "rozrzut przed sondą (x)", "distractor_cost": "koszt powiad. (ms)",
     "distractor_lag": "powrót do tempa (ms)", "distractor_clicks": "kliknięcia",
     "regressions": "powroty", "premature": "przejścia przedwczesne",
@@ -246,7 +274,9 @@ def show(v):
 def check_against_browser(sess, mine):
     """Porównuje z wartościami policzonymi w przeglądarce."""
     pairs = [("tau", "tau"), ("tail_ratio", "tailRatio"), ("cv", "cv"), ("dprime", "dprime"),
-             ("slow_band", "slowBand"), ("comprehension", "comprehension"), ("wpm", "wpm")]
+             ("slow_band", "slowBand"), ("comprehension", "comprehension"), ("wpm", "wpm"),
+             ("off_task_rate", "offTaskRate"), ("absorption", "absorption"),
+             ("distractor_hover_rate", "distractorHoverRate")]
     bad = []
     for py, js in pairs:
         a, b_ = mine.get(py), sess.get("metrics", {}).get(js)
@@ -301,6 +331,8 @@ def main():
     head = f"# {args.path}  ·  forma {mine['form']}"
     if mine.get("code"):
         head += f"  ·  kod {mine['code']}"
+    if mine.get("salience"):
+        head += f"  ·  powiadomienia: {mine['salience']}"
     print(head + "\n")
     if mine.get("tau") is None:
         print("uwaga: tau nieokreślone (rozkład bez prawostronnej skośności) — czytaj ogon odporny\n")

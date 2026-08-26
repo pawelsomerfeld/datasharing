@@ -68,14 +68,59 @@ W tekst wplecione są cztery niezależne kanały pomiarowe:
 |---|---|---|
 | **Czas linii** | spacja przewija dalej | zmienność uwagi w czasie |
 | **Linie bez sensu** | 3 na tekst, gramatyczne ale semantycznie absurdalne; reakcja klawiszem `X` | czy tekst jest przetwarzany, czy tylko przewijany |
-| **Sondy myśli** | przerwanie z pytaniem „gdzie był Twój umysł?", 5 opcji | samoopis odpływania, do skonfrontowania z czasami |
-| **Dystraktory** | atrapy powiadomień systemowych w rogu ekranu | koszt zakłócenia i tempo powrotu |
+| **Sondy myśli** | przerwanie: kategoria myśli, potem ocena wciągnięcia 1–5 | samoopis uwagi, do skonfrontowania z czasami |
+| **Powiadomienia** | karty odwzorowujące systemowe: macOS, Windows 11, komunikator, baner mobilny, pasek postępu | koszt zakłócenia, tempo powrotu, orientacja wzroku |
 
 Kanały pasywne, o których badany nie myśli: powroty do poprzedniej linii (`←`),
 przejścia szybsze niż fizycznie możliwe do przeczytania, czas trzymania klawisza,
 utrata fokusu okna. Na końcu każdego tekstu — cztery pytania o treść.
 
 Czas: 12–18 minut, tryb skrócony ok. 5.
+
+## Powiadomienia
+
+Pięć stylów odwzorowujących układ, ruch i hierarchię prawdziwych powiadomień: jasna
+rozmyta karta w prawym górnym rogu, ciemna karta z przyciskami akcji w prawym dolnym,
+karta komunikatora z awatarem i wskaźnikiem pisania, baner zjeżdżający z góry ekranu
+oraz pasek postępu pobierania. Ikony są rysowane od zera — chodzi o wierność formy,
+nie o cudze znaki towarowe.
+
+**Natarczywość jest parametrem badania, nie ustawieniem estetycznym.** Trzy poziomy
+zapisują się w pliku wyniku, więc da się je utrzymać stałe albo celowo nimi manipulować
+między grupami:
+
+| Poziom | Kart na zdarzenie | Czas życia | Dźwięk |
+|---|---|---|---|
+| Łagodny | 1 | 3,5 s | nie |
+| Standardowy | 1 | 5 s | nie |
+| Natarczywy *(domyślny)* | 2, druga po 650 ms | 7 s | tak |
+
+Silniejszy bodziec da większy efekt, ale grozi sufitem i oddala zadanie od zwykłego
+czytania. Dlatego wybór jest jawny, a nie zaszyty na stałe.
+
+Sygnał dźwiękowy jest generowany na miejscu, bez plików. To najsilniejszy z bodźców,
+ale jego **głośność zależy od sprzętu i nie jest standaryzowana** — przy porównaniach
+między osobami albo używaj go wszędzie, albo nigdzie.
+
+Dwie rzeczy, które to zmusiło do zmierzenia:
+
+- **Najazd kursorem.** Orientacja uwagi bez decyzji o kliknięciu. Zdarza się o rząd
+  wielkości częściej niż kliknięcie, więc różnicuje znacznie lepiej. Rejestrowany jest
+  też czas do najazdu.
+- **Dostarczone kontra zaplanowane.** Karta znika, gdy badany przechodzi do kolejnej
+  linii, więc bardzo szybkie czytanie może wyprzedzić drugą kartę. Gdyby to zostawić
+  bez pomiaru, dawka bodźca zależałaby po cichu od tempa czytania. Panel pokazuje
+  stosunek wprost, żeby ta resztka zależności była widoczna w danych.
+
+Przycisk **Pokaż przykłady** na ekranie startowym odpala wszystkie style naraz;
+podgląd nie trafia do logu.
+
+## Podgląd materiału
+
+Przycisk **Podgląd materiału** pokazuje badaczowi wszystkie teksty obu form wraz
+z częścią próbną, z zaznaczonymi liniami bez sensu, powiadomieniami i miejscami sond,
+oraz pytania z zaznaczonymi poprawnymi odpowiedziami. Wcześniej trzeba było czytać
+źródło. Nie pokazuj tego ekranu badanemu.
 
 ## Metryczka
 
@@ -151,11 +196,41 @@ fałszywych alarmów. Niskie d′ **przy szybkim tempie** jest sygnałem czytani
 kodowania treści.
 
 **Walidacja wewnętrzna** — rozrzut czasów w czterech liniach przed sondą, na którą
-badany odpowiedział „odpłynąłem", podzielony przez ten sam rozrzut przed sondą
-„byłem przy tekście". Wartość powyżej 1 znaczy, że wskaźnik obiektywny zapowiadał
+badany odpowiedział „poza tekstem", podzielony przez ten sam rozrzut przed sondą
+„przy treści tekstu". Wartość powyżej 1 znaczy, że wskaźnik obiektywny zapowiadał
 to, co badany zaraz zaraportował. Jest to pojedynczy najważniejszy wynik w całym
 narzędziu: sprawdza, czy pomiar w ogóle łapie to zjawisko, o które nam chodzi,
 **w obrębie jednej osoby**, bez potrzeby grupy kontrolnej.
+
+## Sonda: co i dlaczego zostało zmienione
+
+Pierwsza wersja pytała, gdzie był umysł, i dawała pięć opcji, wśród których dwie
+rozdzielały odpływanie na „wiedziałem o tym" i „zorientowałem się dopiero teraz".
+To rozróżnienie ma sens w literaturze, ale badany w połowie czytania nie potrafi go
+zrobić wiarygodnie — wymaga introspekcji nad własną metaświadomością sprzed sekundy.
+Doszło do tego, że opcje były sformułowane czasownikami w pierwszej osobie, więc każda
+niosła końcówkę rodzajową do wybrania w trakcie zadania.
+
+Obecna wersja ma dwa kroki:
+
+**Krok 1 — kategoria.** Pięć wyrażeń rzeczownikowych, bez czasowników, a więc bez
+końcówek rodzajowych, każde z krótkim przykładem pod spodem:
+
+| Odpowiedź | Kategoria |
+|---|---|
+| Przy treści tekstu | przy zadaniu |
+| Przy czymś zupełnie innym | odpływanie myślami |
+| Przy samym badaniu | myśli o wykonaniu zadania |
+| Przy czymś na ekranie albo w otoczeniu | bodziec zewnętrzny |
+| Nigdzie — w głowie było pusto | pustka |
+
+Kategoria bodźca zewnętrznego jest nowa i konieczna: bez niej powiadomienia nie miały
+gdzie zapisać się w samoopisie, więc trafiały do worka „odpływanie", z którym nie mają
+wiele wspólnego.
+
+**Krok 2 — stopień.** „Na ile udało się wciągnąć w tekst przez ostatnią minutę?",
+skala 1–5. Pomiar ciągły obok kategorycznego: łatwiejszy do udzielenia i mocniejszy
+statystycznie niż samo „odpłynąłem albo nie".
 
 ## Rozkład zdarzeń jest sprawdzany automatycznie
 

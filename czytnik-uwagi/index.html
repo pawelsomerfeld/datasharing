@@ -78,6 +78,24 @@ kbd{
 }
 .store{display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap}
 .store .count{font-family:"IBM Plex Mono",monospace; font-size:1.3rem; font-variant-numeric:tabular-nums}
+.pv-line{
+  display:grid; grid-template-columns:2rem 1fr auto; gap:var(--s3); align-items:baseline;
+  padding:.32rem 0; border-bottom:1px solid var(--line);
+}
+.pv-line:last-child{border-bottom:0}
+.pv-n{font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--ink-2); text-align:right}
+.pv-t{font-family:Literata,Georgia,serif; font-size:.9rem; line-height:1.45}
+.pv-line.anom .pv-t{color:var(--crit)}
+.pv-tags{display:flex; gap:.3rem; flex-wrap:wrap; justify-content:flex-end}
+.pv-tag{
+  font-size:.64rem; font-family:"IBM Plex Mono",monospace; text-transform:uppercase;
+  letter-spacing:.06em; padding:.1rem .4rem; border-radius:2px; white-space:nowrap;
+}
+.pv-tag.a{background:color-mix(in srgb,var(--crit) 16%,transparent); color:var(--crit)}
+.pv-tag.d{background:color-mix(in srgb,var(--warn) 18%,transparent); color:var(--warn)}
+.pv-tag.p{background:var(--signal-soft); color:var(--signal)}
+.pv-q{display:grid; grid-template-columns:1.4rem 1fr; gap:var(--s2) var(--s3); font-size:.86rem}
+.pv-q .ok{color:var(--signal); font-weight:500}
 input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 
 /* ---------- stage ---------- */
@@ -101,16 +119,107 @@ input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 .flash{animation:flash .45s ease-out}
 @keyframes flash{0%{color:var(--stage-sig)}100%{color:var(--stage-ink)}}
 
-/* ---------- distractor toast ---------- */
-#toast{
-  position:fixed; right:1.5rem; bottom:4.5rem; width:19rem; background:#1b2a28; color:#dfe8e6;
-  border:1px solid #2f403d; border-radius:6px; padding:.8rem .9rem; display:none; cursor:pointer;
-  box-shadow:0 10px 30px rgba(0,0,0,.45); z-index:60; text-align:left;
+/* ---------- powiadomienia ----------
+   Pięć kotwic i pięć stylów odwzorowujących układ, ruch i hierarchię
+   powiadomień systemowych. Ikony są rysowane od zera — chodzi o
+   wierność formy, nie o cudze znaki towarowe.                        */
+.n-anchor{position:fixed; z-index:60; display:flex; flex-direction:column; gap:.55rem; pointer-events:none}
+.n-tr{top:1.25rem; right:1.25rem; align-items:flex-end}
+.n-br{bottom:1.25rem; right:1.25rem; align-items:flex-end; flex-direction:column-reverse}
+.n-tc{top:1rem; left:50%; transform:translateX(-50%); align-items:center}
+.nt{
+  pointer-events:auto; cursor:pointer; text-align:left; will-change:transform,opacity;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  animation:n-in-r .42s cubic-bezier(.22,1.15,.36,1) both;
 }
-#toast.on{display:block; animation:slidein .28s cubic-bezier(.2,.8,.3,1)}
-@keyframes slidein{from{transform:translateX(120%)}to{transform:none}}
-#toast .t-app{font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:#8fa5a1; font-family:"IBM Plex Mono",monospace}
-#toast .t-body{font-size:.88rem; margin-top:.2rem}
+.n-tc > .nt{animation-name:n-in-t}
+.nt.out{animation:n-out .26s ease-in forwards}
+@keyframes n-in-r{from{transform:translateX(118%) scale(.96); opacity:0} to{transform:none; opacity:1}}
+@keyframes n-in-t{from{transform:translateY(-140%); opacity:0} to{transform:none; opacity:1}}
+@keyframes n-out{to{transform:translateX(118%) scale(.95); opacity:0}}
+.n-ico{
+  width:2.35rem; height:2.35rem; border-radius:11px; flex:none;
+  display:grid; place-items:center; box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+.n-ico svg{width:1.3rem; height:1.3rem; display:block}
+
+/* macOS: jasna, mocno rozmyta karta w prawym górnym rogu */
+.nt-mac{
+  width:21.5rem; border-radius:16px; padding:.8rem .9rem; color:#1c1c1e;
+  background:rgba(247,247,249,.86); backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:.5px solid rgba(255,255,255,.6);
+  box-shadow:0 12px 38px rgba(0,0,0,.32), 0 2px 6px rgba(0,0,0,.18);
+  display:grid; grid-template-columns:auto 1fr auto; gap:.65rem; align-items:start;
+}
+.nt-mac .n-app{display:block; font-size:.79rem; font-weight:600}
+.nt-mac .n-body{display:block; font-size:.81rem; color:#3a3a3c; line-height:1.34; margin-top:.08rem}
+.nt-mac .n-time{font-size:.72rem; color:#8e8e93; white-space:nowrap}
+
+/* Windows 11: ciemna karta z akrylem i przyciskami akcji, prawy dolny róg */
+.nt-win{
+  width:22.5rem; border-radius:8px; padding:.85rem .95rem; color:#f3f3f3;
+  background:rgba(44,44,44,.92); backdrop-filter:blur(26px) saturate(150%);
+  -webkit-backdrop-filter:blur(26px) saturate(150%);
+  border:1px solid rgba(255,255,255,.1); box-shadow:0 16px 44px rgba(0,0,0,.5);
+}
+.nt-win .n-head{display:flex; align-items:center; gap:.4rem; font-size:.72rem; color:#c4c4c4; margin-bottom:.5rem}
+.nt-win .n-head .n-ico{width:1.05rem; height:1.05rem; border-radius:3px; box-shadow:none}
+.nt-win .n-head .n-ico svg{width:.68rem; height:.68rem}
+.nt-win .n-title{font-size:.9rem; font-weight:600}
+.nt-win .n-body{font-size:.81rem; color:#cdcdcd; line-height:1.36; margin-top:.15rem}
+.nt-win .n-actions{display:flex; gap:.5rem; margin-top:.8rem}
+.nt-win .n-btn{
+  font:inherit; font-size:.78rem; padding:.34rem .95rem; border-radius:4px;
+  background:#3a3a3a; border:1px solid #4d4d4d; color:#f3f3f3;
+}
+
+/* Komunikator: awatar, imię, podgląd wiadomości, wskaźnik pisania */
+.nt-chat{
+  width:20.5rem; border-radius:14px; padding:.65rem .75rem; background:#fff; color:#050505;
+  box-shadow:0 14px 38px rgba(0,0,0,.34);
+  display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center;
+}
+.nt-chat .n-av{
+  width:2.7rem; height:2.7rem; border-radius:50%; flex:none; display:grid; place-items:center;
+  color:#fff; font-weight:600; font-size:.92rem; letter-spacing:.02em;
+}
+.nt-chat .n-name{display:block; font-size:.87rem; font-weight:600}
+.nt-chat .n-msg{display:block; font-size:.81rem; color:#65676b; margin-top:.08rem; min-height:1.1em}
+.nt-chat .n-dot{width:.62rem; height:.62rem; border-radius:50%; background:#0a7cff; flex:none}
+.typing{display:inline-flex; gap:.22rem; align-items:center; height:1.1em}
+.typing i{width:.34rem; height:.34rem; border-radius:50%; background:#9aa0a6; animation:blink 1.15s infinite}
+.typing i:nth-child(2){animation-delay:.18s}
+.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,60%,100%{opacity:.25} 30%{opacity:1}}
+
+/* Baner mobilny: ciemna pigułka zjeżdżająca z góry ekranu */
+.nt-mob{
+  width:24rem; max-width:92vw; border-radius:20px; padding:.7rem .85rem; color:#f2f2f7;
+  background:rgba(28,28,30,.86); backdrop-filter:blur(26px) saturate(160%);
+  -webkit-backdrop-filter:blur(26px) saturate(160%);
+  border:.5px solid rgba(255,255,255,.16); box-shadow:0 16px 44px rgba(0,0,0,.55);
+  display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center;
+}
+.nt-mob .n-ico{width:1.9rem; height:1.9rem; border-radius:7px}
+.nt-mob .n-ico svg{width:1.05rem; height:1.05rem}
+.nt-mob .n-app{display:block; font-size:.66rem; text-transform:uppercase; letter-spacing:.09em; color:#a1a1a6}
+.nt-mob .n-title{display:block; font-size:.85rem; font-weight:600; margin-top:.05rem}
+.nt-mob .n-body{display:block; font-size:.79rem; color:#c7c7cc}
+
+/* Pasek postępu: sam ruch przyciąga wzrok mocniej niż tekst */
+.nt-sys{
+  width:21.5rem; border-radius:10px; padding:.8rem .9rem; color:#e6ebee;
+  background:#242a2f; border:1px solid #39424a; box-shadow:0 14px 38px rgba(0,0,0,.46);
+}
+.nt-sys .n-head{display:flex; align-items:center; gap:.5rem}
+.nt-sys .n-ico{width:1.7rem; height:1.7rem; border-radius:6px}
+.nt-sys .n-ico svg{width:.95rem; height:.95rem}
+.nt-sys .n-title{font-size:.87rem; font-weight:600}
+.nt-sys .n-body{font-size:.79rem; color:#a9b4bc; margin-top:.3rem}
+.n-prog{height:.28rem; border-radius:99px; background:#39424a; margin-top:.6rem; overflow:hidden}
+.n-prog i{display:block; height:100%; background:#4c9be8; width:8%; animation:n-fill 2.8s cubic-bezier(.3,.1,.5,1) forwards}
+@keyframes n-fill{to{width:100%}}
 
 /* ---------- overlays: probe & quiz ---------- */
 .overlay{position:fixed; inset:0; background:var(--stage-bg); color:var(--stage-ink); display:none; z-index:70; overflow-y:auto}
@@ -121,6 +230,14 @@ input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 }
 .opt:hover{background:#1d2b29; border-color:var(--stage-sig)}
 .opt .k{font-family:"IBM Plex Mono",monospace; color:var(--stage-sig); font-size:.85rem; flex:none; width:1.2rem}
+.opt .sub{display:block; font-size:.8rem; color:var(--stage-dim); margin-top:.15rem}
+.scale{display:grid; grid-template-columns:repeat(5,1fr); gap:.5rem}
+.scale button{
+  font:inherit; font-family:"IBM Plex Mono",monospace; font-size:1.35rem; padding:1rem 0;
+  background:#141f1e; border:1px solid #2b3937; color:var(--stage-ink);
+}
+.scale button:hover{background:#1d2b29; border-color:var(--stage-sig); color:var(--stage-sig)}
+.scale-ends{display:flex; justify-content:space-between; gap:var(--s4); font-size:.78rem; color:var(--stage-dim)}
 
 /* ---------- results ---------- */
 .metrics{
@@ -162,7 +279,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.3</p>
+    <p class="eyebrow">Prototyp badawczy · v0.4</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -194,8 +311,9 @@ textarea{
   <section class="stack g4">
     <h2>Zanim zaczniesz</h2>
     <div class="notice stack g3">
-      <p class="small"><strong>Powiadomienia są częścią badania.</strong> W trakcie czytania w rogu ekranu pojawią się
-        atrapy powiadomień. Nie klikaj ich i czytaj dalej — mierzymy, ile kosztuje Cię ich zignorowanie.</p>
+      <p class="small"><strong>Powiadomienia są częścią badania.</strong> W trakcie czytania pojawią się
+        powiadomienia wyglądające jak systemowe, czasem z dźwiękiem. Żadne z nich nie jest prawdziwe i nic
+        za nimi nie stoi. Nie klikaj ich i czytaj dalej — mierzymy właśnie to, ile kosztuje Cię ich zignorowanie.</p>
       <p class="small"><strong>Pytania o myśli.</strong> Kilka razy czytanie przerwie pytanie o to, gdzie właśnie był
         Twój umysł. Odpowiadaj szczerze — „myślałem o czymś innym" jest tu poprawną i użyteczną odpowiedzią.</p>
       <p class="small"><strong>Nie zmieniaj kart ani okna.</strong> Jeśli to zrobisz, zostanie to zarejestrowane jako
@@ -226,6 +344,18 @@ textarea{
   </section>
 
   <section class="stack g4">
+    <h2>Powiadomienia</h2>
+    <div class="radio-row" id="sal-pick"></div>
+    <label class="check"><input type="checkbox" id="sal-sound">
+      <span class="small">Sygnał dźwiękowy. Najsilniejszy z bodźców, ale głośność zależy od sprzętu —
+      przy porównaniach między osobami albo używaj go wszędzie, albo nigdzie.</span></label>
+    <div class="row">
+      <button class="btn-ghost" id="sal-demo">Pokaż przykłady</button>
+      <span class="small muted">Poziom zapisuje się w pliku wyniku, więc da się go utrzymać stały albo nim manipulować.</span>
+    </div>
+  </section>
+
+  <section class="stack g4">
     <h2>Zestaw tekstów</h2>
     <div class="radio-row" id="form-pick"></div>
     <p class="small muted" style="max-width:38rem">Formy są równoważne co do budowy i dziedziny tekstów.
@@ -242,6 +372,7 @@ textarea{
       <span class="small">Tryb skrócony — tylko pierwszy tekst (≈5 minut). Przydatny do zapoznania się z procedurą.</span></label>
     <div class="row">
       <button class="btn" id="start" disabled>Rozpocznij</button>
+      <button class="btn-ghost" id="pv-open">Podgląd materiału</button>
       <span class="small muted">Potrzebna klawiatura fizyczna.</span>
     </div>
   </section>
@@ -256,17 +387,34 @@ textarea{
     <span><kbd>Spacja</kbd> dalej &nbsp; <kbd>←</kbd> wstecz &nbsp; <kbd>X</kbd> bez sensu</span>
   </div>
 </div>
-<div id="toast" role="alert"><div class="t-app" id="t-app"></div><div class="t-body" id="t-body"></div></div>
+<div class="n-anchor n-tr" id="na-tr"></div>
+<div class="n-anchor n-br" id="na-br"></div>
+<div class="n-anchor n-tc" id="na-tc"></div>
 
 <!-- ============ 3. SONDA MYŚLI ============ -->
 <div class="overlay" id="probe">
   <div class="stack g5" style="max-width:34rem; width:100%">
     <div class="stack g2">
-      <p class="eyebrow" style="color:var(--stage-sig)">Sonda</p>
-      <h2>Gdzie był Twój umysł tuż przed tym pytaniem?</h2>
+      <p class="eyebrow" style="color:var(--stage-sig)">Sonda · 1 z 2</p>
+      <h2>Gdzie były Twoje myśli tuż przed tym pytaniem?</h2>
     </div>
     <div class="stack g2" id="probe-opts"></div>
     <p class="small" style="color:var(--stage-dim)">Wybierz myszą albo klawiszem 1–5.</p>
+  </div>
+</div>
+
+<!-- ============ 3a. SONDA, CZĘŚĆ DRUGA ============ -->
+<div class="overlay" id="probe2">
+  <div class="stack g5" style="max-width:34rem; width:100%">
+    <div class="stack g2">
+      <p class="eyebrow" style="color:var(--stage-sig)">Sonda · 2 z 2</p>
+      <h2>Na ile udało się wciągnąć w tekst przez ostatnią minutę?</h2>
+    </div>
+    <div class="scale" id="abs-opts"></div>
+    <div class="scale-ends">
+      <span>1 — wcale, myśli były gdzie indziej</span>
+      <span>5 — całkowicie, nie było mnie tu</span>
+    </div>
   </div>
 </div>
 
@@ -293,6 +441,9 @@ textarea{
     <p class="small" style="color:var(--stage-dim)">Nie wracaj myślami do tekstu na siłę — jeśli nie wiesz, zgadnij.</p>
   </div>
 </div>
+
+<!-- ============ 4b. PODGLĄD MATERIAŁU (DLA BADACZA) ============ -->
+<main id="preview" class="wrap stack g6" style="display:none"></main>
 
 <!-- ============ 5. WYNIKI ============ -->
 <main id="results" class="wrap stack g7" style="display:none"></main>
@@ -584,33 +735,76 @@ const META_FIELDS = [
 
 let PASSAGES = FORMS.A.passages;   // ustawiane przy starcie sesji
 
-const DISTRACTORS = [
-  {app:"Kalendarz", body:"Spotkanie zespołu — za 10 minut"},
-  {app:"Wiadomości", body:"Marta: „masz chwilę?”"},
-  {app:"System", body:"Aktualizacja gotowa do instalacji"},
-  {app:"Poczta", body:"3 nowe wiadomości w skrzynce"},
-  {app:"Bank", body:"Zaksięgowano przelew przychodzący"},
-  {app:"Dysk", body:"Kończy się miejsce na urządzeniu"},
-  {app:"Wiadomości", body:"Tomek dodał Cię do grupy „Wyjazd”"}
+/* ---------- katalog powiadomień ----------
+   Ikony rysowane od zera; odwzorowujemy układ i ruch systemów
+   operacyjnych, nie cudze logotypy.                                  */
+const ICONS = {
+  chat:"M12 3.2c-4.9 0-8.9 3.3-8.9 7.4 0 2.3 1.3 4.4 3.3 5.8L5.8 20l3.7-1.6c.8.2 1.6.3 2.5.3 4.9 0 8.9-3.3 8.9-7.4S16.9 3.2 12 3.2z",
+  calendar:"M7 2v2H5.5A2.5 2.5 0 0 0 3 6.5v13A2.5 2.5 0 0 0 5.5 22h13a2.5 2.5 0 0 0 2.5-2.5v-13A2.5 2.5 0 0 0 18.5 4H17V2h-2v2H9V2H7zm-2 8h14v9.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V10z",
+  mail:"M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-11zm2.4-.5 6.6 5 6.6-5H5.4z",
+  gear:"M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8zm8.5 3.4c0-.5 0-1-.1-1.5l2-1.5-2-3.4-2.3 1a8 8 0 0 0-2.6-1.5L15.1 2H8.9l-.4 2.6a8 8 0 0 0-2.6 1.5l-2.3-1-2 3.4 2 1.5a9 9 0 0 0 0 3l-2 1.5 2 3.4 2.3-1a8 8 0 0 0 2.6 1.5l.4 2.6h6.2l.4-2.6a8 8 0 0 0 2.6-1.5l2.3 1 2-3.4-2-1.5c.1-.5.1-1 .1-1.5z",
+  down:"M12 3v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4L10 13.2V3h2zM4 19h16v2H4v-2z",
+  card:"M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5V9H3V7.5zM3 11h18v5.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5V11zm3 3v2h5v-2H6z"
+};
+const svg = (n, fill) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill||"#fff"}" d="${ICONS[n]}"/></svg>`;
+
+const NOTIFS = [
+  {style:"chat", anchor:"tr", app:"Komunikator", who:"Marta K.", av:"MK",
+   avBg:"linear-gradient(140deg,#9b5cf6,#e0468f)", msg:"masz chwilę? to pilne", typing:true},
+  {style:"mac", anchor:"tr", app:"Kalendarz", icon:"calendar", iconBg:"linear-gradient(180deg,#ff7b72,#e0342a)",
+   body:"Spotkanie zespołu za 10 minut · sala 2.14", time:"teraz"},
+  {style:"win", anchor:"br", app:"Poczta", icon:"mail", iconBg:"#0a66c2",
+   title:"3 nowe wiadomości", body:"Kadry: „Prośba o uzupełnienie danych do piątku”",
+   actions:["Otwórz","Przypomnij później"]},
+  {style:"mob", anchor:"tc", app:"Bank", icon:"card", iconBg:"linear-gradient(180deg,#2eb888,#137a58)",
+   title:"Zaksięgowano przelew", body:"+1 240,00 zł · Wynagrodzenie"},
+  {style:"sys", anchor:"br", app:"Aktualizacje", icon:"down", iconBg:"#4c9be8",
+   title:"Pobieranie aktualizacji", body:"Wymagane ponowne uruchomienie po instalacji", progress:true},
+  {style:"chat", anchor:"br", app:"Komunikator", who:"Tomek", av:"T",
+   avBg:"linear-gradient(140deg,#2ec7ff,#0a7cff)", msg:"dodał Cię do grupy „Wyjazd w góry”", typing:false},
+  {style:"mac", anchor:"tr", app:"Dysk", icon:"gear", iconBg:"linear-gradient(180deg,#a1a1a6,#5c5c60)",
+   body:"Kończy się miejsce — pozostało 1,2 GB", time:"teraz"},
+  {style:"win", anchor:"br", app:"Kalendarz", icon:"calendar", iconBg:"#c4314b",
+   title:"Za 5 minut: rozmowa z Anną", body:"Link do spotkania w zaproszeniu",
+   actions:["Dołącz","Odrzuć"]}
 ];
 
+/* Natarczywość jest parametrem badania, nie ustawieniem estetycznym:
+   zapisuje się w metryczce, żeby dało się ją utrzymać stałą albo
+   celowo manipulować nią między grupami.                             */
+const SALIENCE = {
+  lagodny:     {label:"Łagodny",     hint:"jedna dyskretna karta, 3,5 s",              count:1, delay:450, life:3500, typing:false, sound:false},
+  standardowy: {label:"Standardowy", hint:"jedna karta systemowa, 5 s",                count:1, delay:400, life:5000, typing:true,  sound:false},
+  natarczywy:  {label:"Natarczywy",  hint:"dwie nachodzące karty, 7 s, dźwięk",        count:2, delay:350, life:7000, typing:true,  sound:true}
+};
+
+
+/* Opcje sformułowane jako wyrażenia rzeczownikowe: żadnych czasowników
+   w pierwszej osobie, więc żadnych końcówek rodzajowych do wybierania
+   w połowie zadania. Zrezygnowano z rozróżnienia „wiedziałem / nie
+   wiedziałem, że odpływam" — jest ono sensowne w literaturze, ale badany
+   w trakcie czytania nie potrafi go wiarygodnie zrobić. W zamian doszła
+   kategoria bodźca zewnętrznego, bez której powiadomienia nie miały
+   gdzie się zapisać w samoopisie.                                      */
 const PROBE_OPTS = [
-  {k:"on-task",   label:"Na treści tekstu, który czytam"},
-  {k:"task-rel",  label:"Na samym zadaniu — na tym, jak mi idzie"},
-  {k:"mw-aware",  label:"Na czymś innym — i wiedziałem(-am) o tym"},
-  {k:"mw-unaware",label:"Na czymś innym — zorientowałem(-am) się dopiero teraz"},
-  {k:"blank",     label:"Pustka — nie myślałem(-am) o niczym"}
+  {k:"on-task",  label:"Przy treści tekstu",                 sub:"myśli szły za tym, co czytam"},
+  {k:"mw",       label:"Przy czymś zupełnie innym",           sub:"plany, wspomnienia, sprawy do załatwienia"},
+  {k:"task-rel", label:"Przy samym badaniu",                  sub:"ile jeszcze zostało, czy dobrze mi idzie"},
+  {k:"external", label:"Przy czymś na ekranie albo w otoczeniu", sub:"powiadomienie, dźwięk, ruch obok"},
+  {k:"blank",    label:"Nigdzie — w głowie było pusto",       sub:"żadnej konkretnej myśli"}
 ];
+const OFF_TASK = ["mw","task-rel","external","blank"];
 
 /* ---------- 2. STAN SESJI -------------------------------------------- */
 
 const S = {
   t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null,
+  sal:SALIENCE.natarczywy, notifTimers:[], notifPlanned:0, previewing:false,
   order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
   events:[],         // surowy log zdarzeń
   probes:[], quiz:[],
-  lineOnset:0, flaggedThisLine:false, distractorShown:0, toastTimer:null,
+  lineOnset:0, flaggedThisLine:false, distractorShown:0,
   blurStart:0, blurTotal:0, blurCount:0, spaceDown:0, holdTimes:[]
 };
 
@@ -736,9 +930,13 @@ function renderStore(){
 }
 
 function toCSV(all){
-  const meta = ["code","form","startedAt","short","age","education","sleep","caffeine","meds","diagnosis"];
+  const meta = ["code","form","salience","sound","startedAt","short","age","education",
+                "sleep","caffeine","meds","diagnosis"];
   const met  = ["tau","tailRatio","mu","sigma","cv","slowBand","dprime","hits","misses","falseAlarms",
-                "detectLatency","mwRate","preProbeSdRatio","distractorCost","distractorClicks",
+                "detectLatency","offTaskRate","probeOnTask","probeMindWandering","probeTaskRelated",
+                "probeExternal","probeBlank","absorption","preProbeSdRatio","distractorCost",
+                "distractorsPlanned","distractorsShown","distractorsDelivered",
+                "distractorHoverRate","distractorHoverMs","distractorClicks",
                 "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
   const head = [...meta, ...met, "distractorLag1","distractorLag2","distractorLag3"];
   const cell = v => {
@@ -782,7 +980,83 @@ $("store-clear").addEventListener("click", () => {
   renderStore();
 });
 
+function buildSalience(){
+  const box = $("sal-pick");
+  Object.entries(SALIENCE).forEach(([k, v]) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="sal" id="sal-${k}" value="${k}"${k==="natarczywy"?" checked":""}>` +
+      `<span>${v.label} <span class="muted small">— ${v.hint}</span></span>`;
+    box.appendChild(l);
+  });
+  box.addEventListener("change", syncSound);
+  syncSound();
+}
+const currentSalKey = () => document.querySelector('input[name="sal"]:checked').value;
+const syncSound = () => { $("sal-sound").checked = SALIENCE[currentSalKey()].sound; };
+const currentSal = () => ({...SALIENCE[currentSalKey()], key:currentSalKey(), sound:$("sal-sound").checked});
+
+$("sal-demo").addEventListener("click", () => {
+  initAudio();
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  clearNotifs();
+  S.sal = currentSal();
+  S.previewing = true;
+  NOTIFS.forEach((d, i) => S.notifTimers.push(setTimeout(() => showNotif(d, i), i * 750)));
+  S.notifTimers.push(setTimeout(() => { clearNotifs(); S.previewing = false; },
+                                NOTIFS.length * 750 + S.sal.life));
+});
+
+/* ---------- podgląd materiału dla badacza ----------
+   Żeby zobaczyć, gdzie stoją bezsensy, powiadomienia i sondy, nie
+   trzeba było dotąd czytać źródła. Teraz nie trzeba.                 */
+function buildPreview(){
+  const esc = t => t.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const passageHTML = (p, head = true) => {
+    const lines = p.lines.map((l, i) => {
+      const n = i + 1, anom = isAnom(l);
+      const tags = [];
+      if (anom) tags.push('<span class="pv-tag a">bez sensu</span>');
+      if (p.dist.includes(n)) tags.push('<span class="pv-tag d">powiadomienie</span>');
+      if (p.probe.includes(n)) tags.push('<span class="pv-tag p">sonda po tej linii</span>');
+      return `<div class="pv-line${anom?" anom":""}"><span class="pv-n">${n}</span>` +
+             `<span class="pv-t">${esc(lineText(l))}</span><span class="pv-tags">${tags.join("")}</span></div>`;
+    }).join("");
+    const qs = p.questions.map((q, i) =>
+      `<div class="pv-q"><span class="mono muted">${i+1}.</span><span>${esc(q.q)}<br>` +
+      q.o.map((o, j) => `<span class="${j===q.c?"ok":"muted"}">${j===q.c?"✓ ":"· "}${esc(o)}</span>`).join("<br>") +
+      `</span></div>`).join("");
+    return `<section class="stack g4">${head?`<h3>${p.title}</h3>`:""}<div class="card">${lines}</div>` +
+           (qs ? `<div class="card stack g4"><p class="eyebrow">Pytania o treść</p>${qs}</div>` : "") + `</section>`;
+  };
+
+  $("preview").innerHTML =
+    `<header class="stack g3">
+       <p class="eyebrow">Dla badacza</p>
+       <h1>Materiał bodźcowy</h1>
+       <p class="lede">Wszystkie teksty z zaznaczonymi liniami bez sensu, powiadomieniami i miejscami sond.
+         Poprawne odpowiedzi są oznaczone. Nie pokazuj tego ekranu badanemu.</p>
+       <div class="row"><button class="btn" id="pv-back">Wróć</button></div>
+     </header>
+     <section class="stack g4"><h2>Część próbna</h2>${passageHTML(PRACTICE, false)}</section>` +
+    Object.entries(FORMS).map(([k, f]) =>
+      `<section class="stack g5"><h2>${f.label}</h2>${f.passages.map(passageHTML).join("")}</section>`).join("");
+
+  $("pv-back").addEventListener("click", () => {
+    $("preview").style.display = "none";
+    $("intro").style.display = "";
+    window.scrollTo(0,0);
+  });
+}
+
+$("pv-open").addEventListener("click", () => {
+  if (!$("preview").innerHTML) buildPreview();
+  $("intro").style.display = "none";
+  $("preview").style.display = "";
+  window.scrollTo(0,0);
+});
+
 buildFormPicker();
+buildSalience();
 buildMetaFields();
 renderStore();
 
@@ -797,16 +1071,21 @@ function begin(){
   S.t0 = now();
   S.meta = readMeta();
   S.form = document.querySelector('input[name="form"]:checked').value;
+  S.sal = currentSal();
+  S.previewing = false;
+  clearNotifs();
+  initAudio();                       // kliknięcie „Rozpocznij" to gest, którego wymaga WebAudio
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   PASSAGES = FORMS[S.form].passages;
   S.order = $("short").checked ? [0] : PASSAGES.map((_,i)=>i);
-  log("session-start", {form:S.form, short:$("short").checked, screen:`${screen.width}x${screen.height}`});
+  log("session-start", {form:S.form, salience:S.sal.key, sound:S.sal.sound,
+                        short:$("short").checked, screen:`${screen.width}x${screen.height}`});
   $("intro").style.display = "none";
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("keyup", onKeyUp);
   window.addEventListener("blur", onBlur);
   window.addEventListener("focus", onFocus);
   window.addEventListener("beforeunload", guardUnload);
-  $("toast").addEventListener("click", onToastClick);
   $("ap-go").addEventListener("click", startMeasured);
 
   S.practice = true;                       // najpierw blok próbny, poza pomiarem
@@ -855,6 +1134,7 @@ function startMeasured(){
   S.lines = buildLines(PASSAGES, S.order);
   S.li = 0;
   S.distractorShown = 0;
+  S.notifPlanned = 0;                // blok próbny nie wlicza się do wskaźników
   log("measured-start", {});
   $("stage").classList.add("on");
   showLine();
@@ -871,29 +1151,123 @@ function showLine(){
   L.visits++;
   S.lineOnset = now();
   log("line-onset", {i:S.li, visit:L.visits});
-  if (L.distractor && L.visits === 1) scheduleToast();
+  if (L.distractor && L.visits === 1) scheduleNotifs();
 }
 
-function scheduleToast(){
-  const d = DISTRACTORS[S.distractorShown % DISTRACTORS.length];
-  S.distractorShown++;
-  setTimeout(() => {
-    if (!$("stage").classList.contains("on")) return;
-    $("t-app").textContent = d.app; $("t-body").textContent = d.body;
-    $("toast").classList.add("on");
-    log("distractor-on", {i:S.li, app:d.app});
-    S.toastTimer = setTimeout(hideToast, 4000);
-  }, 400);
+/* Krótki sygnał generowany na miejscu — bez plików dźwiękowych.
+   Głośność zależy od sprzętu, więc jest to bodziec niestandaryzowany
+   i tak też jest opisany w metryczce.                                */
+let audioCtx = null;
+function initAudio(){
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { audioCtx = null; }
 }
-function hideToast(){ $("toast").classList.remove("on"); clearTimeout(S.toastTimer); }
-function onToastClick(){
-  log("distractor-click", {i:S.li});
-  hideToast();
+function ding(kind){
+  if (!audioCtx || !S.sal.sound) return;
+  const t0 = audioCtx.currentTime;
+  const notes = kind === "chat" ? [784, 1046.5] : [1046.5, 1396.9, 1760];
+  notes.forEach((f, i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = f;
+    const t = t0 + i * 0.085;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.085, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + 0.34);
+  });
+}
+
+function notifHTML(d){
+  const ico = `<span class="n-ico" style="background:${d.iconBg}">${svg(d.icon)}</span>`;
+  switch (d.style){
+    case "mac": return ico +
+      `<span><span class="n-app">${d.app}</span><span class="n-body">${d.body}</span></span>` +
+      `<span class="n-time">${d.time || "teraz"}</span>`;
+    case "win": return `<div class="n-head">${ico}<span>${d.app}</span></div>` +
+      `<div class="n-title">${d.title}</div><div class="n-body">${d.body}</div>` +
+      `<div class="n-actions">${(d.actions||[]).map(a=>`<button class="n-btn" type="button">${a}</button>`).join("")}</div>`;
+    case "chat": return `<span class="n-av" style="background:${d.avBg}">${d.av}</span>` +
+      `<span><span class="n-name">${d.who}</span><span class="n-msg"></span></span><span class="n-dot"></span>`;
+    case "mob": return ico +
+      `<span><span class="n-app">${d.app}</span><span class="n-title">${d.title}</span>` +
+      `<span class="n-body">${d.body}</span></span><span class="n-time"></span>`;
+    case "sys": return `<div class="n-head">${ico}<span class="n-title">${d.title}</span></div>` +
+      `<div class="n-body">${d.body}</div>` + (d.progress ? `<div class="n-prog"><i></i></div>` : "");
+  }
+  return "";
+}
+
+function showNotif(d, seq){
+  if (!S.previewing && !$("stage").classList.contains("on")) return;
+  const el = document.createElement("div");
+  el.className = "nt nt-" + d.style;
+  el.setAttribute("role", "alert");
+  el.innerHTML = notifHTML(d);
+  $("na-" + d.anchor).appendChild(el);
+  const shown = now();
+  if (!S.previewing) log("distractor-on", {i:S.li, style:d.style, app:d.app, seq});
+  ding(d.style === "chat" ? "chat" : "sys");
+
+  /* Najazd kursorem to orientacja uwagi bez decyzji o kliknięciu —
+     miara czulsza niż samo kliknięcie i o wiele częstsza.            */
+  let hovered = false;
+  el.addEventListener("mouseenter", () => {
+    if (hovered) return;
+    hovered = true;
+    if (!S.previewing) log("distractor-hover", {i:S.li, app:d.app, ms:Math.round(now() - shown)});
+  });
+  el.addEventListener("click", () => {
+    if (!S.previewing) log("distractor-click", {i:S.li, app:d.app, ms:Math.round(now() - shown)});
+    dropNotif(el);
+  });
+
+  const msg = el.querySelector(".n-msg");
+  if (d.style === "chat" && msg){
+    if (d.typing && S.sal.typing){
+      msg.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+      S.notifTimers.push(setTimeout(() => {
+        if (!msg.isConnected) return;
+        msg.textContent = d.msg;
+        ding("chat");
+      }, 1000));
+    } else {
+      msg.textContent = d.msg;
+    }
+  }
+  S.notifTimers.push(setTimeout(() => dropNotif(el), S.sal.life));
+}
+
+function dropNotif(el){
+  if (!el || !el.isConnected || el.classList.contains("out")) return;
+  el.classList.add("out");
+  setTimeout(() => el.remove(), 260);
+}
+
+/* Druga karta idzie 650 ms po pierwszej, a nie 1150 ms: przy dłuższym
+   odstępie szybki czytelnik zdążyłby przejść dalej i zobaczyłby tylko
+   jedną, przez co liczba bodźców zależałaby od tempa czytania.
+   Zaplanowane i faktycznie wyświetlone liczymy osobno, żeby ta resztka
+   zależności była widoczna w danych, a nie ukryta.                    */
+function scheduleNotifs(){
+  const first = S.distractorShown % NOTIFS.length;
+  S.distractorShown += S.sal.count;
+  S.notifPlanned += S.sal.count;
+  for (let k = 0; k < S.sal.count; k++){
+    const d = NOTIFS[(first + k) % NOTIFS.length];
+    S.notifTimers.push(setTimeout(() => showNotif(d, k), S.sal.delay + k * 650));
+  }
+}
+
+function clearNotifs(){
+  S.notifTimers.forEach(clearTimeout);
+  S.notifTimers = [];
+  ["tr","br","tc"].forEach(a => { $("na-" + a).innerHTML = ""; });
 }
 
 function onKeyDown(e){
   if ($("after-practice").classList.contains("on")) return;
   if ($("probe").classList.contains("on")) return handleProbeKey(e);
+  if ($("probe2").classList.contains("on")) return handleAbsorptionKey(e);
   if ($("quiz").classList.contains("on"))  return handleQuizKey(e);
   if (!$("stage").classList.contains("on")) return;
   if (e.code === "Space"){
@@ -945,7 +1319,7 @@ function advance(){
   const L = S.lines[S.li];
   const rt = closeLine();
   log("advance", {i:S.li, rt, visit:L.visits});
-  hideToast();
+  clearNotifs();
 
   if (L.probeAfter && L.visits === 1) return openProbe();
   nextLine();
@@ -963,15 +1337,18 @@ function nextLine(){
   showLine();
 }
 
-/* ---------- sonda myśli ---------- */
-let probeOnset = 0;
+/* ---------- sonda myśli: kategoria, potem stopień wciągnięcia ----------
+   Skala 1–5 daje pomiar ciągły obok kategorycznego — więcej mocy
+   statystycznej i łatwiejsza do udzielenia odpowiedź.                */
+let probeOnset = 0, absOnset = 0, pendingProbe = null;
+
 function openProbe(){
   $("stage").classList.remove("on");
   const box = $("probe-opts"); box.innerHTML = "";
   PROBE_OPTS.forEach((o, i) => {
     const b = document.createElement("button");
     b.className = "opt";
-    b.innerHTML = `<span class="k">${i+1}</span><span>${o.label}</span>`;
+    b.innerHTML = `<span class="k">${i+1}</span><span>${o.label}<span class="sub">${o.sub}</span></span>`;
     b.addEventListener("click", () => answerProbe(i));
     box.appendChild(b);
   });
@@ -984,10 +1361,34 @@ function handleProbeKey(e){
   if (n >= 1 && n <= PROBE_OPTS.length){ e.preventDefault(); answerProbe(n - 1); }
 }
 function answerProbe(i){
-  const rt = Math.round(now() - probeOnset);
-  S.probes.push({lineIdx:S.li, key:PROBE_OPTS[i].k, rt});
-  log("probe-answer", {i:S.li, key:PROBE_OPTS[i].k, rt});
+  pendingProbe = {lineIdx:S.li, key:PROBE_OPTS[i].k, rt:Math.round(now() - probeOnset)};
+  log("probe-answer", {i:S.li, key:pendingProbe.key, rt:pendingProbe.rt});
   $("probe").classList.remove("on");
+  openAbsorption();
+}
+
+function openAbsorption(){
+  const box = $("abs-opts"); box.innerHTML = "";
+  for (let v = 1; v <= 5; v++){
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = v;
+    b.addEventListener("click", () => answerAbsorption(v));
+    box.appendChild(b);
+  }
+  $("probe2").classList.add("on");
+  absOnset = now();
+}
+function handleAbsorptionKey(e){
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 5){ e.preventDefault(); answerAbsorption(n); }
+}
+function answerAbsorption(v){
+  pendingProbe.absorption = v;
+  pendingProbe.absRt = Math.round(now() - absOnset);
+  S.probes.push(pendingProbe);
+  log("probe-absorption", {i:S.li, absorption:v, rt:pendingProbe.absRt});
+  pendingProbe = null;
+  $("probe2").classList.remove("on");
   $("stage").classList.add("on");
   nextLine();
 }
@@ -1165,14 +1566,19 @@ function computeMetrics(){
   const dprime = Z(hr) - Z(fr);
 
   /* --- sondy myśli --- */
-  const mwKeys = ["mw-aware","mw-unaware","blank"];
-  const mwRate = S.probes.length ? S.probes.filter(p=>mwKeys.includes(p.key)).length / S.probes.length : null;
+  const np = S.probes.length;
+  const share = k => np ? S.probes.filter(p => p.key === k).length / np : null;
+  const cats = {onTask:share("on-task"), mw:share("mw"), taskRel:share("task-rel"),
+                external:share("external"), blank:share("blank")};
+  const offTaskRate = np ? S.probes.filter(p => OFF_TASK.includes(p.key)).length / np : null;
+  const absVals = S.probes.map(p => p.absorption).filter(v => typeof v === "number");
+  const absorption = absVals.length ? mean(absVals) : null;
 
   /* walidacja wewnętrzna: rozrzut czasów w 4 liniach przed sondą,
-     osobno dla sond „byłem przy tekście” i „odpłynąłem”              */
-  const pre = key => {
+     osobno dla sond przy tekście i poza tekstem                      */
+  const pre = off => {
     const vals=[];
-    S.probes.filter(p => mwKeys.includes(p.key) === key).forEach(p=>{
+    S.probes.filter(p => OFF_TASK.includes(p.key) === off).forEach(p=>{
       const w = resid.slice(Math.max(0,p.lineIdx-3), p.lineIdx+1);
       if (w.length>=3) vals.push(sd(w));
     });
@@ -1188,17 +1594,30 @@ function computeMetrics(){
     const v = rows.filter((r,i)=> rows[i-g] && rows[i-g].distractor && rows[i-g].passage===r.passage).map(r=>r.resid);
     return v.length ? mean(v) - mean(base) : null;
   });
-  const clicks = S.events.filter(e=>e.type==="distractor-click").length;
+  /* Zdarzenia z bloku próbnego odcinamy tak samo, jak odcinamy jego
+     linie — inaczej powiadomienie z próby zawyżałoby mianownik.       */
+  const t0m = (S.events.find(e => e.type === "measured-start") || {t:0}).t;
+  const ev = S.events.filter(e => e.t >= t0m);
+  const clicks = ev.filter(e=>e.type==="distractor-click").length;
+  /* Najazd kursorem: orientacja uwagi bez decyzji o kliknięciu.
+     Zdarza się o rząd wielkości częściej, więc różnicuje lepiej.     */
+  const shown = ev.filter(e=>e.type==="distractor-on").length;
+  const delivered = S.notifPlanned ? shown / S.notifPlanned : null;
+  const hoverEv = ev.filter(e=>e.type==="distractor-hover");
+  const hoverRate = shown ? hoverEv.length / shown : null;
+  const hoverMs = med(hoverEv.map(e=>e.ms));
 
   /* --- pozostałe --- */
   const premature = perChar.filter(v=>v<12).length;
-  const regressions = S.events.filter(e=>e.type==="regression").length;
+  const regressions = ev.filter(e=>e.type==="regression").length;
   const acc = S.quiz.length ? S.quiz.filter(q=>q.correct).length / S.quiz.length : null;
   const totMs = rows.reduce((a,r)=>a+r.rt,0);
   const wpm = totMs>0 ? rows.reduce((a,r)=>a+r.words,0)/(totMs/60000) : null;
 
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
-    mwRate, preMW, preOn, distCost, lagCost, clicks, premature, regressions, acc, wpm,
+    cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
+    clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
+    premature, regressions, acc, wpm,
     blurCount:S.blurCount, blurTotal:S.blurTotal,
     duration:(S.events[S.events.length-1].t)/60000,
     hold:med(S.holdTimes)};
@@ -1231,7 +1650,10 @@ function metricCard(label, val, unit, note, cls, dir, small){
 
 function renderResults(M){
   const r = $("results");
-  const mwPct = M.mwRate===null ? "—" : Math.round(M.mwRate*100)+"%";
+  const mwPct = M.offTaskRate===null ? "—" : Math.round(M.offTaskRate*100)+"%";
+  const pc = v => v===null ? "—" : Math.round(v*100)+"%";
+  const catNote = `Rozkład odpowiedzi: przy tekście ${pc(M.cats.onTask)}, myślami gdzie indziej ${pc(M.cats.mw)}, `
+    + `przy samym badaniu ${pc(M.cats.taskRel)}, bodziec z zewnątrz ${pc(M.cats.external)}, pustka ${pc(M.cats.blank)}.`;
   const accPct = M.acc===null ? "—" : Math.round(M.acc*100)+"%";
   const slowPct = M.slow===null ? "—" : Math.round(M.slow*100)+"%";
 
@@ -1289,7 +1711,8 @@ function renderResults(M){
     <div class="metrics">
       ${metricCard("d′ wykrywania bezsensu", fmt(M.dprime,2), "", `${M.hits} trafień, ${M.miss} przeoczeń, ${M.fa} fałszywych alarmów. Niskie d′ przy szybkim tempie to sygnał czytania bez kodowania treści.`, band(M.dprime,2.0,1.0,-1), -1)}
       ${metricCard("Opóźnienie wykrycia", fmt(M.lat,0), " ms", "Mediana czasu od pojawienia się bezsensownej linii do reakcji.", "")}
-      ${metricCard("Odpływanie myślami", mwPct, "", `Odsetek sond, w których uwaga była poza tekstem (${S.probes.length} sond).`, band(M.mwRate,0.25,0.45,1))}
+      ${metricCard("Uwaga poza tekstem", mwPct, "", `Odsetek z ${S.probes.length} sond, w których myśli nie były przy treści. ${catNote}`, band(M.offTaskRate,0.25,0.45,1))}
+      ${metricCard("Wciągnięcie w tekst", fmt(M.absorption,1), " / 5", "Średnia z ocen 1–5 podawanych przy każdej sondzie. Pomiar ciągły obok kategorycznego: łatwiejszy do udzielenia i mocniejszy statystycznie niż samo „odpłynąłem albo nie”.", band(M.absorption,3.5,2.5,-1), -1)}
       ${metricCard("Rozumienie tekstu", accPct, "", `${S.quiz.filter(q=>q.correct).length} z ${S.quiz.length} pytań. Zestawiaj z tempem: wysokie tempo przy niskim rozumieniu to inny profil niż niskie tempo przy niskim rozumieniu.`, band(M.acc,0.75,0.5,-1), -1)}
     </div>
   </section>
@@ -1302,7 +1725,9 @@ function renderResults(M){
     <div class="metrics">
       ${metricCard("Koszt powiadomienia", (M.distCost===null?"—":(M.distCost>0?"+":"")+fmt(M.distCost,0)), " ms", "Przyrost czasu linii, na której pojawiło się powiadomienie, względem linii spokojnych.", band(M.distCost,150,400,1))}
       ${metricCard("Powrót do tempa", M.lagCost.map(v=>v===null?"—":(v>0?"+":"")+Math.round(v)).join(" · "), "", "Reszty na kolejnych trzech liniach po powiadomieniu (ms). Wartości utrzymujące się powyżej zera oznaczają wolny powrót.", "", 0, true)}
+      ${metricCard("Wzrok poszedł za powiadomieniem", M.hoverRate===null?"—":Math.round(M.hoverRate*100)+"%", "", `Odsetek z ${M.shown} wyświetlonych powiadomień, nad którymi znalazł się kursor${M.hoverMs===null?"":`, mediana po ${Math.round(M.hoverMs)} ms`}. Orientacja uwagi bez decyzji o kliknięciu — zdarza się o wiele częściej niż kliknięcie, więc lepiej różnicuje.`, band(M.hoverRate,0.2,0.5,1))}
       ${metricCard("Kliknięcia w powiadomienie", M.clicks, "", "Mimo instrukcji, by nie klikać. Bezpośredni wskaźnik zachowania impulsywnego.", band(M.clicks,0,1,1))}
+      ${metricCard("Powiadomienia dostarczone", `${M.shown} / ${M.planned}`, "", "Karta znika, gdy badany przechodzi do kolejnej linii, więc bardzo szybkie czytanie może wyprzedzić drugą kartę. Wartości znacznie poniżej kompletu znaczą, że dawka bodźca była mniejsza — uwzględnij to, zanim porównasz koszt powiadomienia między osobami.", band(M.delivered,0.99,0.75,-1), -1)}
       ${metricCard("Wyjścia poza okno", M.blurCount, "", `Łącznie ${fmt(M.blurTotal/1000,1)} s poza kartą. Czas ten odjęto od czasów czytania linii.`, band(M.blurCount,0,2,1))}
     </div>
   </section>
@@ -1350,7 +1775,8 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.3", ...S.meta, form:S.form, startedAt:new Date().toISOString(),
+    meta:{version:"0.4", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+          startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
           short:$("short").checked, practiceCaught:S.practiceCaught},
     lines:S.lines.map((L,i)=>({...L, resid:Math.round(M.resid[i])})),
@@ -1358,8 +1784,13 @@ function renderResults(M){
     probes:S.probes, quiz:S.quiz, events:S.events,
     metrics:{tau:M.eg.tau, tailRatio:M.tail, skew:M.eg.skew, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
              dprime:M.dprime, hits:M.hits, misses:M.miss, falseAlarms:M.fa, detectLatency:M.lat,
-             mwRate:M.mwRate, preProbeSdRatio:(M.preMW&&M.preOn)?M.preMW/M.preOn:null,
+             offTaskRate:M.offTaskRate, probeOnTask:M.cats.onTask, probeMindWandering:M.cats.mw,
+             probeTaskRelated:M.cats.taskRel, probeExternal:M.cats.external, probeBlank:M.cats.blank,
+             absorption:M.absorption,
+             preProbeSdRatio:(M.preMW&&M.preOn)?M.preMW/M.preOn:null,
              distractorCost:M.distCost, distractorLagCost:M.lagCost, distractorClicks:M.clicks,
+             distractorsPlanned:M.planned, distractorsShown:M.shown, distractorsDelivered:M.delivered,
+             distractorHoverRate:M.hoverRate, distractorHoverMs:M.hoverMs,
              regressions:M.regressions, premature:M.premature, blurCount:M.blurCount,
              blurTotalMs:M.blurTotal, comprehension:M.acc, wpm:M.wpm, medianKeyHoldMs:M.hold}
   };
@@ -1452,9 +1883,8 @@ function drawTrace(M){
   });
 
   /* sondy myśli */
-  const mwKeys = ["mw-aware","mw-unaware","blank"];
   S.probes.forEach(p=>{
-    const mw = mwKeys.includes(p.key);
+    const mw = OFF_TASK.includes(p.key);
     g.fillStyle = mw ? col("--crit") : col("--ink-2");
     g.fillRect(x(p.lineIdx)-1, H-padB+5, mw?3:2, mw?11:7);
   });
