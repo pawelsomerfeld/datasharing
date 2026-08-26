@@ -306,6 +306,68 @@ def score(session):
     out["comprehension_clean"] = acc_clean
     out["lure_cost"] = (acc_clean - acc_lure) if (acc_lure is not None and acc_clean is not None) else None
 
+    # --- zależność uwagi od ocenionej ciekawości ---
+    # Ciekawość nie jest własnością tekstu, tylko relacją między tekstem
+    # a czytelnikiem, więc badany ocenia każdy tekst sam. Wskaźnikiem jest
+    # nachylenie liczone wewnątrz jednej osoby — na czterech punktach,
+    # czyli bardzo mało, i tak też trzeba je czytać.
+    ratings = session.get("ratings", [])
+
+    def passage_summary(r):
+        idx = [i for i, l in enumerate(lines) if l["passage"] == r["passage"] and not l.get("held")]
+        pr = [x for x in probes if x["lineIdx"] < len(lines)
+              and lines[x["lineIdx"]]["passage"] == r["passage"]]
+        ab = [x["absorption"] for x in pr if isinstance(x.get("absorption"), (int, float))]
+        qz = [x for x in quiz if x["passage"] == r["passage"]]
+        rts = [float(lines[i]["rt"]) for i in idx]
+        res_k = [res_full[i] for i in idx]
+        return {
+            "passage": r["passage"], "title": r.get("title"), "designed": r.get("designed"),
+            "interest": r["interest"], "difficulty": r["difficulty"], "n": len(idx),
+            "tail": ((quantile(res_k, 0.9) - quantile(res_k, 0.5)) / (st.median(rts) or 1))
+                    if len(idx) >= 8 else None,
+            "ms_per_char": st.fmean([lines[i]["rt"] / lines[i]["chars"] for i in idx]) if idx else None,
+            "off_task": (sum(1 for x in pr if x["key"] in OFF_TASK) / len(pr)) if pr else None,
+            "absorption": st.fmean(ab) if ab else None,
+            "comprehension": (sum(x["correct"] for x in qz) / len(qz)) if qz else None,
+        }
+
+    per = [passage_summary(r) for r in ratings]
+    out["per_passage"] = per
+
+    def _slope(xs, ys):
+        pts = [(x, y) for x, y in zip(xs, ys) if x is not None and y is not None]
+        if len(pts) < 3:
+            return None
+        mx, my = st.fmean([q[0] for q in pts]), st.fmean([q[1] for q in pts])
+        den = sum((q[0] - mx) ** 2 for q in pts)
+        return (sum((q[0] - mx) * (q[1] - my) for q in pts) / den) if den else None
+
+    def _pearson(xs, ys):
+        pts = [(x, y) for x, y in zip(xs, ys) if x is not None and y is not None]
+        if len(pts) < 3:
+            return None
+        mx, my = st.fmean([q[0] for q in pts]), st.fmean([q[1] for q in pts])
+        sx = math.sqrt(sum((q[0] - mx) ** 2 for q in pts))
+        sy = math.sqrt(sum((q[1] - my) ** 2 for q in pts))
+        return (sum((q[0] - mx) * (q[1] - my) for q in pts) / (sx * sy)) if (sx and sy) else None
+
+    ints = [x["interest"] for x in per]
+    difs = [x["difficulty"] for x in per]
+    out["slope_tail_interest"] = _slope(ints, [x["tail"] for x in per])
+    out["slope_ms_interest"] = _slope(ints, [x["ms_per_char"] for x in per])
+    out["slope_tail_difficulty"] = _slope(difs, [x["tail"] for x in per])
+    out["interest_difficulty_r"] = _pearson(ints, difs)
+
+    def _avg(kind, key):
+        v = [x[key] for x in per if x["designed"] == kind and x[key] is not None]
+        return st.fmean(v) if v else None
+
+    out["rated_interest_engaging"] = _avg("ciekawy", "interest")
+    out["rated_interest_dull"] = _avg("nudny", "interest")
+    out["rated_difficulty_engaging"] = _avg("ciekawy", "difficulty")
+    out["rated_difficulty_dull"] = _avg("nudny", "difficulty")
+
     # --- kontrast ciekawy kontra nudny ---
     # Właściwy wskaźnik nie jest tu poziomem, tylko RÓŻNICĄ wewnątrz tej
     # samej osoby: profil, który trzyma się wyłącznie dopóki tekst wciąga,
@@ -459,6 +521,10 @@ LABELS = {
     "lure_questions": "pytań z przynętą", "lure_rate": "przynęta w odpowiedzi",
     "lure_share_of_errors": "przynęty wśród błędów", "comprehension_lure": "rozumienie: z przynętą",
     "comprehension_clean": "rozumienie: bez przynęty", "lure_cost": "koszt kontaminacji",
+    "slope_tail_interest": "ogon ~ ciekawość", "slope_ms_interest": "tempo ~ ciekawość",
+    "slope_tail_difficulty": "ogon ~ trudność", "interest_difficulty_r": "r(ciekawość,trudność)",
+    "rated_interest_engaging": "ocena ciekawości: ciekawe", "rated_interest_dull": "ocena ciekawości: nudne",
+    "rated_difficulty_engaging": "ocena trudności: ciekawe", "rated_difficulty_dull": "ocena trudności: nudne",
     "gap_tail": "luka: ogon odporny", "gap_cv": "luka: zmienność",
     "gap_off_task": "luka: poza tekstem", "gap_absorption": "luka: wciągnięcie",
     "gap_comprehension": "luka: rozumienie", "gap_teaser_open": "luka: ciekawostki",
@@ -493,7 +559,8 @@ def check_against_browser(sess, mine):
              ("post_error_slowing", "postErrorSlowing"), ("vigilance_slope", "vigilanceSlope"),
              ("lure_rate", "lureRate"), ("teaser_open_rate", "teaserOpenRate"),
              ("lure_cost", "lureCost"), ("habituation_slope", "habituationSlope"),
-             ("time_ratio", "timeRatio"), ("gap_tail", "gapTail")]
+             ("time_ratio", "timeRatio"), ("gap_tail", "gapTail"),
+             ("interest_difficulty_r", "interestDifficultyR")]
     bad = []
     for py, js in pairs:
         a, b_ = mine.get(py), sess.get("metrics", {}).get(js)
@@ -555,6 +622,15 @@ def main():
     print(head + "\n")
     if mine.get("tau") is None:
         print("uwaga: tau nieokreślone (rozkład bez prawostronnej skośności) — czytaj ogon odporny\n")
+    di = mine.get("rated_interest_engaging"), mine.get("rated_interest_dull")
+    dd = mine.get("rated_difficulty_engaging"), mine.get("rated_difficulty_dull")
+    if all(v is not None for v in di + dd):
+        drop, rise = di[0] - di[1], dd[1] - dd[0]
+        if rise >= drop * 0.8:
+            print(f"uwaga: podział ciekawy/nudny jest u tego badanego zmieszany — teksty proceduralne")
+            print(f"       oceniono jako mniej ciekawe o {drop:.1f} pkt, ale i trudniejsze o {rise:.1f} pkt;")
+            print(f"       luki nie wolno przypisać samej ciekawości, czytaj nachylenia\n")
+
     hf = hyperfocus_signs(mine)
     gap_sign = engagement_gap_sign(mine)
     if gap_sign:

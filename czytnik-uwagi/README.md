@@ -78,7 +78,8 @@ Kanały pasywne, o których badany nie myśli: powroty do poprzedniej linii (`�
 przejścia szybsze niż fizycznie możliwe do przeczytania, czas trzymania klawisza,
 utrata fokusu okna. Na końcu każdego tekstu — cztery pytania o treść.
 
-Czas: około 25 minut, tryb skrócony ok. 10.
+Po każdym tekście padają jeszcze dwa pytania o sam tekst: jak ciekawy był i jak trudny
+w czytaniu. Czas całości: około 15–20 minut, tryb skrócony ok. 8.
 
 ## Co odciąga od tekstu
 
@@ -275,7 +276,7 @@ tylko wskazanie, który konstrukt ma tu jakąkolwiek reprezentację pomiarową.
 | Dobrowolne porzucenie zadania | odsetek otwartych ciekawostek, czas w nich spędzony | średnia |
 | Habituacja do bodźca nieistotnego | nachylenie kosztu kolejnych zakłóceń | słaba — tylko 6 ekspozycji |
 | Wrażliwość na wzmocnienie | **brak** | wymagałaby bloku z informacją zwrotną |
-| Hiperfokus, trudność oderwania się | odczuwany czas, subiektywne tempo, flaga ostrzegawcza | słaba — brakuje warunku nudnego do porównania |
+| Hiperfokus, trudność oderwania się | odczuwany czas, nachylenie uwagi względem ocenionej ciekawości, flaga ostrzegawcza | średnia — cztery punkty na nachylenie to mało |
 | Nadruchliwość | **brak** | wymaga pomiaru ruchu, nie klawiatury |
 
 Cztery zastrzeżenia, których nie wolno pominąć:
@@ -345,6 +346,42 @@ warunku porównawczego. Informacja różnicująca leży w **zmienności między 
 zwłaszcza w zadaniach nudnych i narzuconych, których to badanie w ogóle nie zawiera.
 Rozstrzyga o tym wywiad kliniczny, nie ekran.
 
+### Ciekawość jest mierzona, nie orzekana
+
+Podział na teksty „ciekawe" i „nudne" ma dwie wady, obie poważne.
+
+**Ciekawość nie jest własnością tekstu.** Jest relacją między tekstem a czytelnikiem —
+regulamin wypożyczalni bywa ciekawy dla kogoś, kto prowadzi magazyn. Orzekanie z góry,
+co kogo znudzi, jest założeniem, nie pomiarem.
+
+**Teksty proceduralne są nie tylko nudniejsze, ale i trudniejsze.** Zmierzone na własnym
+materiale: teksty nudne mają **26% słów dłuższych niż dziewięć znaków wobec 13%**
+w tekstach wciągających, i mniej więcej trzykrotnie mniej przecinków. Są leksykalnie
+gęstsze i składniowo płaskie. Sama różnica między warunkami jest więc po części różnicą
+trudności, a nie ciekawości.
+
+Dlatego po każdym tekście badany ocenia go na dwóch skalach 1–5: **jak ciekawy był**
+i **jak trudny był w czytaniu**. Zmienia to charakter pomiaru:
+
+- ciekawość przestaje być czynnikiem, który zakładam, a staje się **współzmienną mierzoną
+  u każdego z osobna**;
+- właściwym wskaźnikiem staje się **nachylenie** — o ile rozrzut czasów spada na każdy
+  stopień ocenionej ciekawości, liczone wewnątrz jednej osoby. To jest wprost pytanie
+  „na ile Twoja uwaga zależy od tego, czy materiał wciąga";
+- to samo nachylenie liczy się względem **ocenionej trudności**, więc widać, czy uwaga
+  reaguje na ciekawość, czy na składnię;
+- korelacja obu ocen u tego badanego mówi, czy dało się je w ogóle rozdzielić.
+
+Panel dokłada **kontrolę manipulacji**: o ile niżej oceniono ciekawość tekstów
+proceduralnych i o ile wyżej ich trudność. Gdy wzrost trudności dorównuje spadkowi
+ciekawości, sekcja z podziałem z góry otwiera się czerwoną adnotacją, że u tego badanego
+warunki są zmieszane i luki nie wolno przypisać samej ciekawości. Skrypt w Pythonie
+wypisuje to samo.
+
+Cztery teksty to **cztery punkty na nachylenie**. To bardzo mało — wystarczy, żeby
+zobaczyć kierunek, nie wystarczy na oszacowanie. Wersja z sześcioma tekstami dałaby
+sensowniejsze nachylenia, kosztem długości sesji.
+
 ### Warunek nudny — i dlaczego naprzemiennie
 
 Sesja składa się z czterech tekstów ułożonych **na przemian: ciekawy, nudny, ciekawy,
@@ -371,8 +408,11 @@ bo nie jest kolejnym znakiem w kolejce, tylko właściwym dowodem: profil trzyma
 dopóty, dopóki tekst wciąga. Gdy luki nie ma, ostrzeżenie mówi wprost, że opiera się
 wyłącznie na poziomie wskaźników.
 
-Ceną jest długość: 104 linie zamiast 78, czyli około 25 minut. Tryb skrócony bierze po
-jednym tekście z każdego warunku, więc kontrast zachowuje się także w wersji poglądowej.
+Ceną jest długość: 104 linie zamiast 78. Licząc realnie — czytanie przy tempie około
+250 słów na minutę, osiem linii zatrzymanych, osiem sond po dwa ekrany, szesnaście pytań
+o treść, cztery oceny tekstu i część próbna — daje to **około 15–20 minut**, a nie 25,
+jak szacowałem wcześniej. Tryb skrócony bierze po jednym tekście z każdego warunku,
+więc kontrast zachowuje się także w wersji poglądowej.
 
 ## Linie zatrzymane: hamowanie i czekanie
 

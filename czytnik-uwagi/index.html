@@ -324,7 +324,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.9</p>
+    <p class="eyebrow">Prototyp badawczy · v1.0</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -337,7 +337,7 @@ textarea{
     <p class="muted" style="max-width:38rem">
       Zaczynamy od krótkiej części próbnej, która nie liczy się do wyniku. Potem cztery teksty po 26 linii —
       część wciągających, część suchych i proceduralnych. Widzisz zawsze jedną linię naraz i sam decydujesz,
-      kiedy przejść dalej. Po każdym tekście — cztery pytania o treść. Całość: około 25 minut.
+      kiedy przejść dalej. Po każdym tekście — cztery pytania o treść i dwa o sam tekst. Całość: około 15–20 minut.
     </p>
     <div class="card stack g4">
       <div class="keylist">
@@ -427,7 +427,7 @@ textarea{
       <span class="small">Rozumiem, że to <strong>prototyp badawczy, a nie test diagnostyczny</strong>. Wynik nie
       rozstrzyga o obecności ani braku ADHD i nie zastępuje diagnozy klinicznej. Dane nie opuszczają tej przeglądarki.</span></label>
     <label class="check"><input type="checkbox" id="short">
-      <span class="small">Tryb skrócony — po jednym tekście z każdego rodzaju (≈10 minut). Przydatny do zapoznania się z procedurą.</span></label>
+      <span class="small">Tryb skrócony — po jednym tekście z każdego rodzaju (≈8 minut). Przydatny do zapoznania się z procedurą.</span></label>
     <div class="row">
       <button class="btn" id="start" disabled>Rozpocznij</button>
       <button class="btn-ghost" id="pv-open">Podgląd materiału</button>
@@ -480,6 +480,27 @@ textarea{
       <span>1 — wcale, myśli były gdzie indziej</span>
       <span>5 — całkowicie, nie było mnie tu</span>
     </div>
+  </div>
+</div>
+
+<!-- ============ 3d. OCENA TEKSTU ============ -->
+<div class="overlay" id="rate">
+  <div class="stack g5" style="max-width:34rem; width:100%">
+    <div class="stack g2">
+      <p class="eyebrow" style="color:var(--stage-sig)">Ten tekst</p>
+      <h2 id="rate-title"></h2>
+    </div>
+    <div class="stack g3">
+      <p>Jak ciekawy był?</p>
+      <div class="scale" id="rate-int"></div>
+      <div class="scale-ends"><span>1 — zupełnie nieciekawy</span><span>5 — bardzo ciekawy</span></div>
+    </div>
+    <div class="stack g3">
+      <p>Jak trudny był w czytaniu?</p>
+      <div class="scale" id="rate-dif"></div>
+      <div class="scale-ends"><span>1 — bardzo łatwy</span><span>5 — bardzo trudny</span></div>
+    </div>
+    <button class="btn" id="rate-go" disabled style="align-self:flex-start">Dalej</button>
   </div>
 </div>
 
@@ -1073,7 +1094,7 @@ const S = {
   t0:0, form:"A", orderKey:"cn", practice:false, meta:{}, practiceLines:[], practiceCaught:null, practicePressedHold:null,
   sal:SALIENCE.natarczywy, notifSet:"wciagajace", distMode:"ciekawostki",
   teasers:[], tzCurrent:null, notifTimers:[], notifPlanned:0, previewing:false,
-  holding:false, holdTimer:null, msPerChar:[], timeEst:null, timePace:null,
+  holding:false, holdTimer:null, msPerChar:[], timeEst:null, timePace:null, ratings:[],
   order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
   events:[],         // surowy log zdarzeń
@@ -1237,6 +1258,8 @@ function toCSV(all){
                 "postErrorSlowing","postErrorN","vigilanceSlope",
                 "timeEstimateMin","timeActualMin","timeRatio","timePace",
                 "gapTail","gapCv","gapOffTask","gapAbsorption","gapComprehension","gapTeaserOpen",
+                "slopeTailInterest","slopeTailDifficulty","interestDifficultyR",
+                "ratedInterestEngaging","ratedInterestDull","ratedDifficultyEngaging","ratedDifficultyDull",
                 "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
   const head = [...meta, ...met, "distractorLag1","distractorLag2","distractorLag3"];
   const cell = v => {
@@ -1248,9 +1271,20 @@ function toCSV(all){
   const rows = all.map(x => {
     const lag = (x.metrics && x.metrics.distractorLagCost) || [];
     const g = (x.metrics && x.metrics.engagementGaps) || {};
+    const si = (x.metrics && x.metrics.interestSlope) || {};
+    const sd = (x.metrics && x.metrics.difficultySlope) || {};
+    const pp = (x.metrics && x.metrics.perPassage) || [];
+    const avg = (kind, key) => {
+      const v = pp.filter(q => q.designed === kind).map(q => q[key]);
+      return v.length ? v.reduce((a, b2) => a + b2, 0) / v.length : null;
+    };
     const flat = Object.assign({}, x.metrics, {
       gapTail:g.tail, gapCv:g.cv, gapOffTask:g.offTask,
-      gapAbsorption:g.absorption, gapComprehension:g.comprehension, gapTeaserOpen:g.teaserOpen});
+      gapAbsorption:g.absorption, gapComprehension:g.comprehension, gapTeaserOpen:g.teaserOpen,
+      slopeTailInterest:si.tail, slopeTailDifficulty:sd.tail,
+      interestDifficultyR:x.metrics ? x.metrics.interestDifficultyR : null,
+      ratedInterestEngaging:avg("ciekawy","interest"), ratedInterestDull:avg("nudny","interest"),
+      ratedDifficultyEngaging:avg("ciekawy","difficulty"), ratedDifficultyDull:avg("nudny","difficulty")});
     return [...meta.map(k => cell(x.meta ? x.meta[k] : null)),
             ...met.map(k => cell(flat[k])),
             ...[0,1,2].map(i => cell(lag[i]))].join(",");
@@ -1788,6 +1822,7 @@ function onKeyDown(e){
   if ($("probe").classList.contains("on")) return handleProbeKey(e);
   if ($("probe2").classList.contains("on")) return handleAbsorptionKey(e);
   if ($("timeq").classList.contains("on")) return;
+  if ($("rate").classList.contains("on")) return;
   if ($("quiz").classList.contains("on"))  return handleQuizKey(e);
   if (!$("stage").classList.contains("on")) return;
   if (e.code === "Space"){
@@ -1955,9 +1990,55 @@ function answerQuiz(i){
   log("quiz-answer", rec);
   if (quizQ + 1 < p.questions.length) return openQuiz(quizP, quizQ + 1);
   $("quiz").classList.remove("on");
+  openRating(p);
+}
+
+/* ---------- ocena tekstu ----------
+   Zamiast orzekać z góry, który tekst jest nudny, pytamy o to badanego.
+   Ciekawość nie jest własnością tekstu, tylko relacją między tekstem
+   a czytelnikiem — regulamin bywa ciekawy dla prawnika. Dzięki temu
+   właściwym wskaźnikiem staje się NACHYLENIE: o ile uwaga poprawia się
+   na jednostkę ocenionej ciekawości, liczone wewnątrz jednej osoby.
+
+   Trudność pytamy osobno, bo teksty proceduralne są nie tylko nudniejsze,
+   ale i leksykalnie gęstsze — bez tego pytania nie da się rozstrzygnąć,
+   czy różnica bierze się z ciekawości, czy ze składni.                */
+let rInt = null, rDif = null, ratedPassage = null;
+
+function buildScale(box, onPick){
+  box.innerHTML = "";
+  for (let v = 1; v <= 5; v++){
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = v;
+    b.addEventListener("click", () => {
+      [...box.children].forEach((c, i) => c.classList.toggle("on", i === v - 1));
+      onPick(v);
+    });
+    box.appendChild(b);
+  }
+}
+
+function openRating(p){
+  ratedPassage = p; rInt = null; rDif = null;
+  $("rate-title").textContent = p.title;
+  $("rate-go").disabled = true;
+  buildScale($("rate-int"), v => { rInt = v; syncRate(); });
+  buildScale($("rate-dif"), v => { rDif = v; syncRate(); });
+  $("rate").classList.add("on");
+  rateOnset = now();
+}
+function syncRate(){ $("rate-go").disabled = !(rInt && rDif); }
+let rateOnset = 0;
+
+$("rate-go").addEventListener("click", () => {
+  S.ratings.push({passage:ratedPassage.id, title:ratedPassage.title,
+                  designed:ratedPassage.interest, interest:rInt, difficulty:rDif,
+                  rt:Math.round(now() - rateOnset)});
+  log("passage-rating", {passage:ratedPassage.id, interest:rInt, difficulty:rDif});
+  $("rate").classList.remove("on");
   if (S.li + 1 < S.lines.length){ S.li++; $("stage").classList.add("on"); showLine(); }
   else askTime();
-}
+});
 
 /* ---------- poczucie czasu ----------
    Pytanie zadawane wyłącznie na końcu i bez zapowiedzi. Uprzedzony
@@ -2271,6 +2352,69 @@ function computeMetrics(){
     teaserOpen:gap(cInt.teaserOpen, cDull.teaserOpen)
   } : null;
 
+  /* --- zależność uwagi od ocenionej ciekawości ---
+     Zamiast pytać „czy warunek nudny wypadł gorzej", pytamy „o ile
+     uwaga poprawia się na jednostkę ocenionej ciekawości" — nachylenie
+     liczone wewnątrz jednej osoby, na czterech punktach. Cztery punkty
+     to bardzo mało i tak też trzeba to czytać.                       */
+  const perPassage = S.ratings.map(r => {
+    const g = rd.filter(x => x.passage === r.passage);
+    const pr = S.probes.filter(x => (S.lines[x.lineIdx] || {}).passage === r.passage);
+    const ab = pr.map(x => x.absorption).filter(v => typeof v === "number");
+    const qz = S.quiz.filter(x => x.passage === r.passage);
+    const rts = g.map(x => x.rt), res = g.map(x => x.resid);
+    return {
+      passage:r.passage, title:r.title, designed:r.designed,
+      interest:r.interest, difficulty:r.difficulty, n:g.length,
+      tail:g.length >= 8 ? (quantile(res,0.9) - quantile(res,0.5)) / (med(rts) || 1) : null,
+      msPerChar:g.length ? mean(g.map(x => x.rt / x.chars)) : null,
+      offTask:pr.length ? pr.filter(x => OFF_TASK.includes(x.key)).length / pr.length : null,
+      absorption:ab.length ? mean(ab) : null,
+      comprehension:qz.length ? qz.filter(x => x.correct).length / qz.length : null
+    };
+  });
+
+  const slope = (xs, ys) => {
+    const pts = xs.map((x, i) => [x, ys[i]])
+                  .filter(q => q[0] !== null && q[1] !== null && Number.isFinite(q[1]));
+    if (pts.length < 3) return null;
+    const mx = mean(pts.map(q => q[0])), my = mean(pts.map(q => q[1]));
+    const den = pts.reduce((a, q) => a + (q[0] - mx) ** 2, 0);
+    return den ? pts.reduce((a, q) => a + (q[0] - mx) * (q[1] - my), 0) / den : null;
+  };
+  const pearson = (xs, ys) => {
+    const pts = xs.map((x, i) => [x, ys[i]]).filter(q => q[0] !== null && q[1] !== null);
+    if (pts.length < 3) return null;
+    const mx = mean(pts.map(q => q[0])), my = mean(pts.map(q => q[1]));
+    const sx = Math.sqrt(pts.reduce((a, q) => a + (q[0] - mx) ** 2, 0));
+    const sy = Math.sqrt(pts.reduce((a, q) => a + (q[1] - my) ** 2, 0));
+    return (sx && sy) ? pts.reduce((a, q) => a + (q[0] - mx) * (q[1] - my), 0) / (sx * sy) : null;
+  };
+
+  const ints = perPassage.map(x => x.interest), difs = perPassage.map(x => x.difficulty);
+  const dep = (xs) => ({
+    tail:slope(xs, perPassage.map(x => x.tail)),
+    msPerChar:slope(xs, perPassage.map(x => x.msPerChar)),
+    offTask:slope(xs, perPassage.map(x => x.offTask)),
+    absorption:slope(xs, perPassage.map(x => x.absorption))
+  });
+  const depInterest = perPassage.length ? dep(ints) : null;
+  const depDifficulty = perPassage.length ? dep(difs) : null;
+  const intDifR = pearson(ints, difs);
+
+  /* Kontrola manipulacji: czy teksty zaprojektowane jako nudne zostały
+     tak ocenione — i czy przy okazji nie okazały się trudniejsze.     */
+  const byDesign = k => {
+    const g = perPassage.filter(x => x.designed === k);
+    return g.length ? {interest:mean(g.map(x => x.interest)),
+                       difficulty:mean(g.map(x => x.difficulty)), n:g.length} : null;
+  };
+  const checkInt = byDesign("ciekawy"), checkDull = byDesign("nudny");
+  const manip = (checkInt && checkDull) ? {
+    interestDrop:checkInt.interest - checkDull.interest,
+    difficultyRise:checkDull.difficulty - checkInt.difficulty
+  } : null;
+
   /* --- hamowanie reakcji na liniach zatrzymanych --- */
   const held = rows.filter(r => r.held);
   const holdCommission = held.length ? held.filter(r => r.holdPresses > 0).length / held.length : null;
@@ -2321,7 +2465,8 @@ function computeMetrics(){
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
     timeEst:S.timeEst, timeActualMin:tActual === null ? null : tActual / 60000,
     timeRatio, timePace:S.timePace,
-    cInt, cDull, gaps,
+    cInt, cDull, gaps, perPassage, depInterest, depDifficulty, intDifR,
+    checkInt, checkDull, manip,
     cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
     clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
     costSeq, habituation, costTeaser, costNotif,
@@ -2365,6 +2510,16 @@ function metricCard(label, val, unit, note, cls, dir, small){
    materiale, wychodzi więc na wzór kontroli uwagi — a hiperfokus bywa
    opisywany właśnie w przebiegu ADHD. Jedna sesja na ciekawym tekście
    nie rozdziela tych dwóch możliwości i panel musi to mówić wprost. */
+function passageRows(M){
+  const pc = v => v===null||v===undefined ? "—" : Math.round(v*100)+"%";
+  return M.perPassage.map(x =>
+    `<tr><td>${x.title} <span class="muted small">${x.designed}</span></td>` +
+    `<td class="num">${x.interest}</td><td class="num">${x.difficulty}</td>` +
+    `<td class="num">${x.tail===null?"—":x.tail.toFixed(2)}</td>` +
+    `<td class="num">${x.msPerChar===null?"—":Math.round(x.msPerChar)}</td>` +
+    `<td class="num">${pc(x.offTask)}</td><td class="num">${pc(x.comprehension)}</td></tr>`).join("");
+}
+
 function gapRows(M){
   const pc = v => v===null||v===undefined ? "—" : Math.round(v*100)+"%";
   const n2 = v => v===null||v===undefined ? "—" : v.toFixed(2);
@@ -2466,9 +2621,36 @@ function renderResults(M){
       : "Sam kontrast ciekawy–nudny nie wypadł wyraźnie, więc to ostrzeżenie opiera się na samym poziomie wskaźników. Rozstrzyga wywiad o zmienności między kontekstami, zwłaszcza o zadaniach narzuconych, których to badanie nie zawiera."}</p>
   </section>` : ""}
 
+  ${M.perPassage.length ? `<section class="stack g4">
+    <div class="stack g2">
+      <h2>Zależność uwagi od ciekawości</h2>
+      <p class="small muted" style="max-width:44rem">Ciekawość nie jest własnością tekstu, tylko relacją
+        między tekstem a czytelnikiem — regulamin bywa ciekawy dla prawnika. Dlatego zamiast orzekać z góry,
+        który tekst jest nudny, badany ocenia każdy sam. Wskaźnikiem jest <strong>nachylenie</strong>:
+        o ile uwaga zmienia się na jednostkę ocenionej ciekawości, liczone wewnątrz jednej osoby.
+        Cztery punkty pomiarowe to bardzo mało — czytaj to jako wskazówkę, nie jako oszacowanie.</p>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Tekst</th><th>Ciekawy</th><th>Trudny</th><th>Ogon</th><th>ms/znak</th><th>Poza tekstem</th><th>Rozumienie</th></tr></thead>
+        <tbody>${passageRows(M)}</tbody>
+      </table>
+    </div>
+    <div class="metrics">
+      ${metricCard("Nachylenie: ogon ~ ciekawość", M.depInterest.tail===null?"—":fmt(M.depInterest.tail,3), "", "O ile spada rozrzut czasów na każdy stopień ocenionej ciekawości. Wartość wyraźnie ujemna znaczy, że równe tempo utrzymuje się tylko wtedy, gdy tekst wciąga — to jest właśnie słaba kontrola nad zaangażowaniem.", band(M.depInterest.tail,-0.03,0.02,1))}
+      ${metricCard("Nachylenie: ogon ~ trudność", M.depDifficulty.tail===null?"—":fmt(M.depDifficulty.tail,3), "", "Ten sam rachunek na ocenionej trudności. Jeśli oba nachylenia są podobnie silne, nie da się rozstrzygnąć, czy uwaga reaguje na ciekawość, czy na składnię.", "")}
+      ${metricCard("Ciekawość a trudność", M.intDifR===null?"—":fmt(M.intDifR,2), "", "Korelacja obu ocen u tego badanego. Silnie ujemna znaczy, że „nudny” i „trudny” zlały mu się w jedno — wtedy nachylenia względem ciekawości nie wolno czytać jako czystego efektu ciekawości.", band(M.intDifR===null?null:Math.abs(M.intDifR),0.5,0.8,1))}
+      ${M.manip ? metricCard("Kontrola manipulacji", fmt(M.manip.interestDrop,1), " pkt", `Teksty zaprojektowane jako nudne oceniono niżej o tyle punktów ciekawości (${fmt(M.checkInt.interest,1)} wobec ${fmt(M.checkDull.interest,1)}). Przy okazji trudność wzrosła o ${fmt(M.manip.difficultyRise,1)} pkt — jeśli ten wzrost dorównuje spadkowi ciekawości, warunek jest zmieszany i tak trzeba go opisać.`, band(M.manip.interestDrop,1.0,0.5,-1), -1) : ""}
+    </div>
+  </section>` : ""}
+
   ${M.gaps ? `<section class="stack g4">
     <div class="stack g2">
-      <h2>Ciekawy kontra nudny</h2>
+      <h2>Ciekawy kontra nudny — podział z góry</h2>
+      ${M.manip && M.manip.difficultyRise >= M.manip.interestDrop * 0.8 ? `<p class="small" style="color:var(--crit)">
+        <strong>Ten podział jest u tego badanego zmieszany:</strong> teksty proceduralne oceniono nie tylko jako
+        mniej ciekawe (o ${fmt(M.manip.interestDrop,1)} pkt), ale i jako trudniejsze (o ${fmt(M.manip.difficultyRise,1)} pkt).
+        Luki niżej nie wolno wtedy przypisać samej ciekawości — czytaj nachylenia z sekcji wyżej.</p>` : ""}
       <p class="small muted" style="max-width:44rem">Właściwym wskaźnikiem nie jest tu poziom, tylko
         <strong>różnica wewnątrz tej samej osoby</strong>. Ktoś, kto na wciągającym tekście wygląda wzorowo,
         a na proceduralnym rozsypuje się mocniej niż inni, pokazuje słabą kontrolę nad zaangażowaniem —
@@ -2618,7 +2800,7 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.9", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+    meta:{version:"1.0", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
           notifSet:S.notifSet, distMode:S.distMode, order:S.orderKey,
           startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
@@ -2627,9 +2809,11 @@ function renderResults(M){
     lines:S.lines.map((L,i)=>({...L, resid:M.resid[i]===null?null:Math.round(M.resid[i])})),
     teasers:S.teasers,
     practiceLines:S.practiceLines,
-    probes:S.probes, quiz:S.quiz, events:S.events,
+    probes:S.probes, quiz:S.quiz, ratings:S.ratings, events:S.events,
     metrics:{tau:M.eg.tau, tailRatio:M.tail, skew:M.eg.skew, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
              dprime:M.dprime, hits:M.hits, misses:M.miss, falseAlarms:M.fa, detectLatency:M.lat,
+             perPassage:M.perPassage, interestSlope:M.depInterest, difficultySlope:M.depDifficulty,
+             interestDifficultyR:M.intDifR, manipulationCheck:M.manip,
              byInterest:{ciekawy:M.cInt, nudny:M.cDull}, engagementGaps:M.gaps,
              offTaskRate:M.offTaskRate, probeOnTask:M.cats.onTask, probeMindWandering:M.cats.mw,
              probeTaskRelated:M.cats.taskRel, probeExternal:M.cats.external, probeBlank:M.cats.blank,
