@@ -70,6 +70,7 @@ W tekst wplecione są cztery niezależne kanały pomiarowe:
 | **Linie bez sensu** | 3 na tekst, gramatyczne ale semantycznie absurdalne; reakcja klawiszem `X` | czy tekst jest przetwarzany, czy tylko przewijany |
 | **Sondy myśli** | przerwanie: kategoria myśli, potem ocena wciągnięcia 1–5 | samoopis uwagi, do skonfrontowania z czasami |
 | **Powiadomienia** | karty odwzorowujące systemowe: macOS, Windows 11, komunikator, baner mobilny, pasek postępu | koszt zakłócenia, tempo powrotu, orientacja wzroku |
+| **Linie zatrzymane** | 2 na tekst, tekst widoczny, ale przejść dalej nie wolno | hamowanie reakcji prepotentnej, tolerancja czekania |
 
 Kanały pasywne, o których badany nie myśli: powroty do poprzedniej linii (`←`),
 przejścia szybsze niż fizycznie możliwe do przeczytania, czas trzymania klawisza,
@@ -84,6 +85,19 @@ rozmyta karta w prawym górnym rogu, ciemna karta z przyciskami akcji w prawym d
 karta komunikatora z awatarem i wskaźnikiem pisania, baner zjeżdżający z góry ekranu
 oraz pasek postępu pobierania. Ikony są rysowane od zera — chodzi o wierność formy,
 nie o cudze znaki towarowe.
+
+**Treść jest drugim parametrem.** Dwa zestawy do wyboru, oba zapisywane w pliku wyniku:
+
+- **Neutralne** — suche komunikaty informacyjne (spotkanie, przelew, aktualizacja).
+- **Wciągające** *(domyślne)* — luka informacyjna (wiadomość urwana w pół zdania:
+  „muszę Ci coś powiedzieć, ale nie tutaj”), niejasność społeczna („Nowy komentarz pod
+  Twoim wpisem: «A jednak to nie do końca tak, jak…»”) i drobna presja czasu
+  („pozostało 8 sekund”). To są chwyty, które realnie przyciągają uwagę mocniej
+  niż suchy komunikat.
+
+Celowo **nie ma tu fałszywych alarmów bankowych ani zdrowotnych.** Badany bywa
+pacjentem i nie wolno go straszyć dla zwiększenia siły efektu — sfingowane ostrzeżenie
+o nieautoryzowanej transakcji podniosłoby wskaźniki i byłoby nadużyciem.
 
 **Natarczywość jest parametrem badania, nie ustawieniem estetycznym.** Trzy poziomy
 zapisują się w pliku wyniku, więc da się je utrzymać stałe albo celowo nimi manipulować
@@ -155,6 +169,68 @@ tam użyj importu z jawnym wskazaniem separatora, a nie dwukliku.
 Zapis jest lokalny dla przeglądarki i profilu. Wyczyszczenie danych witryny albo praca
 w oknie prywatnym go likwiduje, dlatego pobieraj komplet po każdej serii badań.
 Jeśli miejsce się skończy, panel po sesji powie o tym wprost, zamiast po cichu zgubić dane.
+
+## Co z modeli ADHD to zadanie faktycznie dotyka
+
+Uczciwa mapa. Nie jest to deklaracja trafności — narzędzie wciąż nie jest zwalidowane —
+tylko wskazanie, który konstrukt ma tu jakąkolwiek reprezentację pomiarową.
+
+| Konstrukt | Reprezentacja w zadaniu | Ocena |
+|---|---|---|
+| Zmienność wewnątrzosobnicza czasów reakcji | τ, ogon odporny, współczynnik zmienności, pasmo 0,03–0,07 Hz | mocna — to jest rdzeń narzędzia |
+| Odpływanie myślami, interferencja sieci spoczynkowej | sondy dwuetapowe, wykrywanie bezsensu, korelacja rozrzutu z samoopisem | mocna |
+| Podatność na dystrakcję i powrót do zadania | koszt powiadomienia, reszty na kolejnych liniach, najazd kursorem | średnia |
+| Hamowanie reakcji prepotentnej | linie zatrzymane, błędy komisji | średnia — to jest no-go, nie stop-signal |
+| Nietolerancja czekania, awersja do odroczenia | tolerancja czekania, naciśnięcia w oknie zatrzymania | średnia |
+| Spadek czujności w czasie | nachylenie tempa względem pozycji w sesji | słaba — 78 linii to krótka sesja |
+| Korekta po błędzie | zwolnienie na linii po fałszywym alarmie lub błędzie komisji | słaba — mało zdarzeń |
+| Impulsywność wyboru, dyskontowanie odroczenia | **brak** | wymaga osobnego zadania |
+| Impulsywność refleksyjna, decyzja na zbyt małych danych | **brak** | wymaga osobnego zadania |
+| Wrażliwość na wzmocnienie | **brak** | wymagałaby bloku z informacją zwrotną |
+| Nadruchliwość | **brak** | wymaga pomiaru ruchu, nie klawiatury |
+
+Trzy zastrzeżenia, których nie wolno pominąć:
+
+**No-go to nie stop-signal.** Linie zatrzymane sygnalizują zakaz od początku ekspozycji,
+więc mierzą powstrzymanie reakcji jeszcze niezainicjowanej. Czas hamowania reakcji już
+uruchomionej (SSRT) to inny wskaźnik i oba potrafią się rozjeżdżać. Kto potrzebuje SSRT,
+potrzebuje procedury schodkowej, a nie tego zadania.
+
+**Tempo zdarzeń jest ustawiane przez badanego.** W modelach energetyczno-poznawczych
+deficyty ujawniają się najmocniej przy bardzo wolnym i bardzo szybkim tempie prezentacji,
+a zadanie samosterowane pozwala badanemu ustawić sobie tempo wygodne. To osłabia część
+efektów i jest ceną, jaką płacimy za trafność ekologiczną. Wersja z narzuconym tempem
+byłaby innym zadaniem, bliższym klasycznemu CPT.
+
+**Dwutorowość jest reprezentowana asymetrycznie.** Tor wykonawczy ma tu kilka wskaźników,
+tor motywacyjny w zasadzie jeden — tolerancję czekania. Do pełnego obrazu trzeba dołożyć
+dyskontowanie odroczenia, co jest osobnym, krótkim zadaniem i naturalnym kolejnym krokiem.
+
+## Linie zatrzymane: hamowanie i czekanie
+
+Po kilkudziesięciu liniach naciśnięcie spacji jest reakcją wyćwiczoną i automatyczną.
+Linia zatrzymana wymaga jej wstrzymania: pod tekstem pojawia się napis „Poczekaj”,
+a linia przechodzi sama. Naciśnięcia w tym oknie to błędy komisji.
+
+Trzy decyzje projektowe, które o tym decydują:
+
+**Okno jest indywidualizowane** — własne tempo badanego razy długość linii, plus 2,2 s.
+Dzięki temu obciążenie hamowaniem jest porównywalne u osoby czytającej szybko i wolno.
+Tempo liczone jest na bieżąco z linii już przeczytanych, dlatego pierwsza linia
+zatrzymana nie może wypaść wcześniej niż ósma w tekście — walidator tego pilnuje.
+
+**Nie ma odliczania i to jest celowe.** Znajomość momentu zakończenia czyni czekanie
+łatwym. To niepewność co do tego, kiedy wolno zareagować, wywołuje reakcje przedwczesne
+i o nią tu chodzi.
+
+**Czas linii zatrzymanej nie jest czasem czytania**, bo został narzucony przez zadanie,
+a nie wybrany przez badanego. Takie linie wypadają z serii czasów, z regresji i ze
+wszystkich wskaźników zmienności. Pozycja w regresji pozostaje jednak globalna: linia
+zatrzymana zajmuje czas sesji, nawet jeśli nie wnosi czasu czytania.
+
+Wskaźniki: odsetek linii z naciśnięciem (błędy komisji), łączna liczba naciśnięć
+(wielokrotne dobijanie to inny wzorzec niż jedno wcześniejsze naciśnięcie) oraz
+tolerancja czekania — jaka część okna zdążyła minąć przed pierwszym naciśnięciem.
 
 ## Wskaźniki i dlaczego akurat te
 
@@ -354,6 +430,17 @@ pytanie" w spreparowanym, lokalnym zbiorze stron, z metryką odejść od celu, g
 dygresji i czasu powrotu do pierwotnego zadania. Bliżej realnego życia niż czytanie,
 ale trudniejsze do ustandaryzowania — dwie osoby nigdy nie przejdą tej samej ścieżki,
 więc porównywalność trzeba budować na miarach grafowych, a nie na czasach.
+
+**Dyskontowanie odroczenia.** Krótkie zadanie wyboru między mniejszą nagrodą teraz
+a większą później. Domyka tor motywacyjny modelu dwutorowego, którego to zadanie
+prawie nie dotyka. Pięć minut, kilkanaście prób, wynik to jeden parametr k.
+To jest najbardziej wartościowe z tego, czego tu nie ma.
+
+**Blok z informacją zwrotną.** W ADHD wykonanie poprawia się nieproporcjonalnie mocno
+przy natychmiastowym wzmocnieniu. Jeden tekst z informacją zwrotną po każdym wykryciu
+bezsensu, reszta bez, dałby test tej hipotezy wewnątrz osoby. Kłopot w tym, że blok
+z wzmocnieniem miesza się z pozycją w sesji i zmęczeniem, więc wymaga kontrbalansowania
+kolejności — a to znaczy cztery formy zamiast dwóch.
 
 **Wersja mobilna.** Wymaga zastąpienia klawiatury dotknięciem i pogodzenia się
 z gorszą precyzją czasową. Do wskaźników opartych na rozrzucie to prawdopodobnie

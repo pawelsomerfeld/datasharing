@@ -63,10 +63,15 @@ def ols(X, y):
     return [b[i] / A[i][i] for i in range(k)]
 
 
-def residualize(lines):
-    """Reszty z regresji: czas linii ~ liczba znaków + pozycja w sesji."""
-    X = [[1.0, float(l["chars"]), float(i)] for i, l in enumerate(lines)]
-    y = [float(l["rt"]) for l in lines]
+def residualize(items):
+    """Reszty z regresji: czas linii ~ liczba znaków + pozycja w sesji.
+
+    `items` to pary (pozycja w pełnej sesji, linia). Pozycja musi być
+    globalna: linia zatrzymana nie wchodzi do serii czasów czytania, ale
+    czas sesji i tak zajmuje, więc kolejne linie są dalej w czasie, niż
+    wynikałoby z numeracji po odfiltrowaniu."""
+    X = [[1.0, float(l["chars"]), float(pos)] for pos, l in items]
+    y = [float(l["rt"]) for _, l in items]
     w = ols(X, y)
     return [y[i] - sum(w[j] * X[i][j] for j in range(3)) for i in range(len(y))]
 
@@ -149,14 +154,23 @@ def score(session):
     if any(l.get("rt") is None for l in lines):
         bad = [l["passage"] + "/" + str(l["n"]) for l in lines if l.get("rt") is None]
         sys.exit("log niekompletny — brak czasu dla linii: " + ", ".join(bad))
-    rt = [float(l["rt"]) for l in lines]
-    res = residualize(lines)
+    # Czas linii zatrzymanej jest narzucony przez zadanie, nie wybrany —
+    # nie wolno go liczyć jako czasu czytania.
+    read_pairs = [(i, l) for i, l in enumerate(lines) if not l.get("held")]
+    read = [l for _, l in read_pairs]
+    rt = [float(l["rt"]) for l in read]
+    res = residualize(read_pairs)
+    # Reszty w indeksacji pełnej listy, z None na liniach zatrzymanych.
+    res_full, it = [], iter(res)
+    for l in lines:
+        res_full.append(None if l.get("held") else next(it))
 
     mu, sigma, tau, skew = ex_gaussian(rt)
     out = {
         "form": session.get("meta", {}).get("form", "?"),
         "code": session.get("meta", {}).get("code"),
         "salience": session.get("meta", {}).get("salience"),
+        "notif_set": session.get("meta", {}).get("notifSet"),
         "n_lines": len(lines),
         "mu": mu, "sigma": sigma, "tau": tau, "skew": skew,
         # Odporny odpowiednik tau: górna połowa rozkładu reszt względem
@@ -205,7 +219,7 @@ def score(session):
         for p in probes:
             if (p["key"] in OFF_TASK) != want_mw:
                 continue
-            w = res[max(0, p["lineIdx"] - 3): p["lineIdx"] + 1]
+            w = [v for v in res_full[max(0, p["lineIdx"] - 3): p["lineIdx"] + 1] if v is not None]
             if len(w) >= 3:
                 vals.append(st.pstdev(w))
         return st.fmean(vals) if vals else None
@@ -214,12 +228,14 @@ def score(session):
     out["pre_probe_sd_ratio"] = (a / b_) if (a and b_) else None
 
     # dystraktory
-    base = [res[i] for i, l in enumerate(lines) if not l["distractor"] and not l["anomaly"]]
-    hit_d = [res[i] for i, l in enumerate(lines) if l["distractor"]]
+    base = [res_full[i] for i, l in enumerate(lines)
+            if not l["distractor"] and not l["anomaly"] and not l.get("held")]
+    hit_d = [res_full[i] for i, l in enumerate(lines) if l["distractor"] and not l.get("held")]
     out["distractor_cost"] = (st.fmean(hit_d) - st.fmean(base)) if hit_d and base else None
     out["distractor_lag"] = [
-        (st.fmean(v) - st.fmean(base)) if (v := [res[i] for i, l in enumerate(lines)
-         if i >= g and lines[i - g]["distractor"] and lines[i - g]["passage"] == l["passage"]]) else None
+        (st.fmean(v) - st.fmean(base)) if (v := [res_full[i] for i, l in enumerate(lines)
+         if i >= g and not l.get("held") and lines[i - g]["distractor"]
+         and lines[i - g]["passage"] == l["passage"]]) else None
         for g in (1, 2, 3)]
     out["distractor_clicks"] = sum(e["type"] == "distractor-click" for e in events)
     # Najazd kursorem na powiadomienie: orientacja uwagi bez kliknięcia.
@@ -234,11 +250,46 @@ def score(session):
 
     # pozostałe
     out["regressions"] = sum(e["type"] == "regression" for e in events)
-    out["premature"] = sum(1 for l in lines if l["rt"] / l["chars"] < PREMATURE_MS_PER_CHAR)
+    out["premature"] = sum(1 for l in read if l["rt"] / l["chars"] < PREMATURE_MS_PER_CHAR)
+
+    # --- hamowanie reakcji na liniach zatrzymanych ---
+    held = [l for l in lines if l.get("held")]
+    presses = [l.get("holdPresses", 0) for l in held]
+    firsts = [l["holdFirstMs"] for l in held if l.get("holdFirstMs") is not None]
+    out["hold_lines"] = len(held)
+    out["hold_commission"] = (sum(1 for x in presses if x) / len(held)) if held else None
+    out["hold_presses"] = sum(presses)
+    out["hold_first_ms"] = st.median(firsts) if firsts else None
+    tol = [l["holdFirstMs"] / l["holdMs"] for l in held
+           if l.get("holdFirstMs") is not None and l.get("holdMs")]
+    out["hold_tolerance"] = st.median(tol) if tol else None
+
+    # --- korekta po błędzie: zwolnienie na linii po błędzie ---
+    post = []
+    for i, l in enumerate(lines):
+        is_err = (l.get("held") and l.get("holdPresses", 0) > 0) \
+              or (not l.get("held") and not l["anomaly"] and l["flagged"])
+        if not is_err or i + 1 >= len(lines):
+            continue
+        nxt = lines[i + 1]
+        if not nxt.get("held") and res_full[i + 1] is not None and nxt["passage"] == l["passage"]:
+            post.append(res_full[i + 1])
+    out["post_error_n"] = len(post)
+    out["post_error_slowing"] = (st.fmean(post) - st.fmean(res)) if post else None
+
+    # --- spadek czujności: nachylenie tempa względem pozycji w sesji ---
+    idx = [i for i, l in enumerate(lines) if not l.get("held")]
+    if len(idx) >= 20:
+        ys = [l["rt"] / l["chars"] for l in read]
+        mx, my = st.fmean(idx), st.fmean(ys)
+        den = sum((x - mx) ** 2 for x in idx)
+        out["vigilance_slope"] = (sum((x - mx) * (ys[i] - my) for i, x in enumerate(idx)) / den * 10) if den else None
+    else:
+        out["vigilance_slope"] = None
     out["blur_count"] = sum(e["type"] == "window-blur" for e in events)
     out["comprehension"] = (sum(q["correct"] for q in quiz) / len(quiz)) if quiz else None
     tot = sum(rt)
-    out["wpm"] = sum(l["words"] for l in lines) / (tot / 60000) if tot else None
+    out["wpm"] = sum(l["words"] for l in read) / (tot / 60000) if tot else None
     return out
 
 
@@ -256,6 +307,10 @@ LABELS = {
     "distractor_hover_ms": "czas do najazdu (ms)",
     "pre_probe_sd_ratio": "rozrzut przed sondą (x)", "distractor_cost": "koszt powiad. (ms)",
     "distractor_lag": "powrót do tempa (ms)", "distractor_clicks": "kliknięcia",
+    "hold_lines": "linii zatrzymanych", "hold_commission": "błędy komisji",
+    "hold_presses": "naciśnięć w oknie", "hold_first_ms": "czas 1. naciśnięcia (ms)",
+    "hold_tolerance": "tolerancja czekania", "post_error_slowing": "korekta po błędzie (ms)",
+    "post_error_n": "błędów do korekty", "vigilance_slope": "spadek czujności",
     "regressions": "powroty", "premature": "przejścia przedwczesne",
     "blur_count": "wyjścia poza okno", "comprehension": "rozumienie", "wpm": "słów/min",
 }
@@ -276,7 +331,9 @@ def check_against_browser(sess, mine):
     pairs = [("tau", "tau"), ("tail_ratio", "tailRatio"), ("cv", "cv"), ("dprime", "dprime"),
              ("slow_band", "slowBand"), ("comprehension", "comprehension"), ("wpm", "wpm"),
              ("off_task_rate", "offTaskRate"), ("absorption", "absorption"),
-             ("distractor_hover_rate", "distractorHoverRate")]
+             ("distractor_hover_rate", "distractorHoverRate"),
+             ("hold_commission", "holdCommission"), ("hold_tolerance", "holdTolerance"),
+             ("post_error_slowing", "postErrorSlowing"), ("vigilance_slope", "vigilanceSlope")]
     bad = []
     for py, js in pairs:
         a, b_ = mine.get(py), sess.get("metrics", {}).get(js)

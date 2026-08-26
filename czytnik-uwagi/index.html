@@ -94,6 +94,7 @@ kbd{
 .pv-tag.a{background:color-mix(in srgb,var(--crit) 16%,transparent); color:var(--crit)}
 .pv-tag.d{background:color-mix(in srgb,var(--warn) 18%,transparent); color:var(--warn)}
 .pv-tag.p{background:var(--signal-soft); color:var(--signal)}
+.pv-tag.h{background:var(--surface-2); color:var(--ink-2)}
 .pv-q{display:grid; grid-template-columns:1.4rem 1fr; gap:var(--s2) var(--s3); font-size:.86rem}
 .pv-q .ok{color:var(--signal); font-weight:500}
 input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
@@ -116,6 +117,19 @@ input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 }
 .stage-foot kbd{background:#182422; border-color:#2c3b39; color:var(--stage-dim)}
 #progress{position:fixed; top:0; left:0; height:2px; background:var(--stage-sig); width:0; transition:width .18s}
+#hold-badge{
+  margin-top:-1.2rem; font-size:.8rem; font-family:"IBM Plex Mono",monospace;
+  letter-spacing:.04em; color:var(--stage-sig); border:1px solid #24413e;
+  background:#101b1a; padding:.4rem .9rem; border-radius:3px;
+}
+#hold-badge[hidden]{display:none}
+#hold-badge.bad{animation:hold-bad .4s ease-out}
+@keyframes hold-bad{
+  0%{color:#e08163; border-color:#7a3a2c; transform:translateX(0)}
+  25%{transform:translateX(-4px)} 60%{transform:translateX(4px)}
+  100%{color:var(--stage-sig); border-color:#24413e; transform:translateX(0)}
+}
+.stage-line.held{opacity:.72}
 .flash{animation:flash .45s ease-out}
 @keyframes flash{0%{color:var(--stage-sig)}100%{color:var(--stage-ink)}}
 
@@ -279,7 +293,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.4</p>
+    <p class="eyebrow">Prototyp badawczy · v0.5</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -301,6 +315,10 @@ textarea{
         <kbd>X</kbd><span>ta linia nie ma sensu / nie pasuje do tekstu</span>
       </div>
       <hr class="rule">
+      <p class="small muted">
+        <strong>Czasem linia się zatrzyma</strong> — pod tekstem pojawi się napis „Poczekaj”.
+        Wtedy nic nie naciskaj: linia przejdzie sama. Nie ma odliczania i tak ma być.
+      </p>
       <p class="small muted">
         W dziewięciu miejscach tekst celowo zamienia się w bezsens. Reaguj klawiszem <kbd>X</kbd>, kiedy to zauważysz —
         to nie podchwytliwe pytanie, tylko pomiar tego, czy czytasz z rozumieniem, czy tylko wodzisz oczami.
@@ -349,6 +367,7 @@ textarea{
     <label class="check"><input type="checkbox" id="sal-sound">
       <span class="small">Sygnał dźwiękowy. Najsilniejszy z bodźców, ale głośność zależy od sprzętu —
       przy porównaniach między osobami albo używaj go wszędzie, albo nigdzie.</span></label>
+    <div class="radio-row" id="set-pick"></div>
     <div class="row">
       <button class="btn-ghost" id="sal-demo">Pokaż przykłady</button>
       <span class="small muted">Poziom zapisuje się w pliku wyniku, więc da się go utrzymać stały albo nim manipulować.</span>
@@ -382,6 +401,7 @@ textarea{
 <div id="stage">
   <div id="progress"></div>
   <div class="stage-line" id="line"></div>
+  <div id="hold-badge" hidden></div>
   <div class="stage-foot">
     <span id="foot-left"></span>
     <span><kbd>Spacja</kbd> dalej &nbsp; <kbd>←</kbd> wstecz &nbsp; <kbd>X</kbd> bez sensu</span>
@@ -475,7 +495,7 @@ textarea{
 const FORMS = {
 A: {label:"Forma A", passages:[
 {
-  id:"baltyk", title:"Bałtyk", dist:[5,16], probe:[11,23],
+  id:"baltyk", title:"Bałtyk", dist:[5,16], probe:[11,23], hold:[15,25],
   lines:[
     "Morze Bałtyckie jest jednym z najmłodszych mórz na naszej planecie.",
     "Powstało dopiero po ustąpieniu lądolodu, około dwunastu tysięcy lat temu.",
@@ -512,7 +532,7 @@ A: {label:"Forma A", passages:[
   ]
 },
 {
-  id:"pszczoly", title:"Nawigacja pszczół", dist:[5,18], probe:[12,25],
+  id:"pszczoly", title:"Nawigacja pszczół", dist:[5,18], probe:[12,25], hold:[17,24],
   lines:[
     "Pszczoła miodna potrafi wrócić do ula z odległości kilku kilometrów.",
     "Nie korzysta przy tym z żadnego pojedynczego, niezawodnego zmysłu.",
@@ -549,7 +569,7 @@ A: {label:"Forma A", passages:[
   ]
 },
 {
-  id:"papier", title:"Historia papieru", dist:[5,22], probe:[12,25],
+  id:"papier", title:"Historia papieru", dist:[5,22], probe:[12,25], hold:[11,21],
   lines:[
     "Papier wynaleziono w Chinach na długo przed jego pojawieniem się w Europie.",
     "Tradycja przypisuje ten wynalazek urzędnikowi dworskiemu Cai Lunowi.",
@@ -588,7 +608,7 @@ A: {label:"Forma A", passages:[
 
 B: {label:"Forma B", passages:[
 {
-  id:"zmarzlina", title:"Wieczna zmarzlina", dist:[5,17], probe:[9,20],
+  id:"zmarzlina", title:"Wieczna zmarzlina", dist:[5,17], probe:[9,20], hold:[16,25],
   lines:[
     "Wieczna zmarzlina to grunt, który pozostaje zamarznięty przez co najmniej dwa lata.",
     "Pokrywa mniej więcej jedną piątą lądów półkuli północnej.",
@@ -625,7 +645,7 @@ B: {label:"Forma B", passages:[
   ]
 },
 {
-  id:"wegorz", title:"Wędrówki węgorza", dist:[5,17], probe:[9,20],
+  id:"wegorz", title:"Wędrówki węgorza", dist:[5,17], probe:[9,20], hold:[16,25],
   lines:[
     "Węgorz europejski rodzi się i ginie w Morzu Sargassowym.",
     "Całą resztę życia spędza natomiast w rzekach i jeziorach Europy.",
@@ -662,7 +682,7 @@ B: {label:"Forma B", passages:[
   ]
 },
 {
-  id:"szklo", title:"Historia szkła", dist:[5,17], probe:[9,20],
+  id:"szklo", title:"Historia szkła", dist:[5,17], probe:[9,20], hold:[16,25],
   lines:[
     "Szkło powstaje ze stopienia piasku kwarcowego w bardzo wysokiej temperaturze.",
     "Czysty kwarc topi się dopiero powyżej tysiąca siedmiuset stopni.",
@@ -705,7 +725,7 @@ B: {label:"Forma B", passages:[
    Zawiera jedną linię bez sensu i jedno powiadomienie, bo obu rzeczy
    trzeba się nauczyć, zanim zaczną coś znaczyć. Nie wchodzi do wskaźników. */
 const PRACTICE = {
-  id:"proba", title:"Część próbna", dist:[7], probe:[],
+  id:"proba", title:"Część próbna", dist:[7], probe:[], hold:[6],
   lines:[
     "Zanim wprowadzono strefy czasowe, każde miasto miało własną godzinę.",
     "Zegar ustawiano według górowania słońca nad danym miejscem.",
@@ -748,7 +768,14 @@ const ICONS = {
 };
 const svg = (n, fill) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill||"#fff"}" d="${ICONS[n]}"/></svg>`;
 
-const NOTIFS = [
+/* Dwa zestawy treści. „Wciągający" wykorzystuje lukę informacyjną
+   (wiadomość urwana w pół zdania), niejasność społeczną i drobną presję
+   czasu — chwyty, które realnie przyciągają uwagę mocniej niż suchy
+   komunikat. Celowo nie ma tu fałszywych alarmów bankowych ani
+   zdrowotnych: badany bywa pacjentem i nie wolno go straszyć dla
+   zwiększenia efektu. Zestaw zapisuje się w pliku wyniku.            */
+const NOTIF_SETS = {
+neutralne: [
   {style:"chat", anchor:"tr", app:"Komunikator", who:"Marta K.", av:"MK",
    avBg:"linear-gradient(140deg,#9b5cf6,#e0468f)", msg:"masz chwilę? to pilne", typing:true},
   {style:"mac", anchor:"tr", app:"Kalendarz", icon:"calendar", iconBg:"linear-gradient(180deg,#ff7b72,#e0342a)",
@@ -767,7 +794,30 @@ const NOTIFS = [
   {style:"win", anchor:"br", app:"Kalendarz", icon:"calendar", iconBg:"#c4314b",
    title:"Za 5 minut: rozmowa z Anną", body:"Link do spotkania w zaproszeniu",
    actions:["Dołącz","Odrzuć"]}
-];
+],
+wciagajace: [
+  {style:"chat", anchor:"tr", app:"Komunikator", who:"Marta K.", av:"MK",
+   avBg:"linear-gradient(140deg,#9b5cf6,#e0468f)", msg:"muszę Ci coś powiedzieć, ale nie tutaj", typing:true},
+  {style:"mac", anchor:"tr", app:"Zdjęcia", icon:"calendar", iconBg:"linear-gradient(180deg,#ffb340,#ff7a1a)",
+   body:"Wspomnienie sprzed pięciu lat — 23 zdjęcia", time:"teraz"},
+  {style:"win", anchor:"br", app:"Komunikator", icon:"chat", iconBg:"#6b4dd6",
+   title:"Nowy komentarz pod Twoim wpisem", body:"„A jednak to nie do końca tak, jak…”",
+   actions:["Zobacz","Ukryj"]},
+  {style:"mob", anchor:"tc", app:"Podsumowanie", icon:"gear", iconBg:"linear-gradient(180deg,#5ac8fa,#0a84ff)",
+   title:"Twój tydzień jest gotowy", body:"Czas przed ekranem wzrósł o 34%"},
+  {style:"sys", anchor:"br", app:"Pobieranie", icon:"down", iconBg:"#4c9be8",
+   title:"Zaraz skończymy — pozostało 8 sekund", body:"Plik zostanie otwarty automatycznie", progress:true},
+  {style:"chat", anchor:"br", app:"Komunikator", who:"Tomek", av:"T",
+   avBg:"linear-gradient(140deg,#2ec7ff,#0a7cff)", msg:"wysłał 3 zdjęcia", typing:true},
+  {style:"mac", anchor:"tr", app:"Kalendarz", icon:"calendar", iconBg:"linear-gradient(180deg,#ff7b72,#e0342a)",
+   body:"Za 5 minut: spotkanie bez potwierdzenia", time:"teraz"},
+  {style:"win", anchor:"br", app:"Wiadomości", icon:"mail", iconBg:"#0a66c2",
+   title:"2 osoby czekają na odpowiedź", body:"Najstarsza wiadomość sprzed trzech dni",
+   actions:["Odpisz","Później"]}
+]
+};
+let NOTIFS = NOTIF_SETS.wciagajace;
+
 
 /* Natarczywość jest parametrem badania, nie ustawieniem estetycznym:
    zapisuje się w metryczce, żeby dało się ją utrzymać stałą albo
@@ -798,8 +848,9 @@ const OFF_TASK = ["mw","task-rel","external","blank"];
 /* ---------- 2. STAN SESJI -------------------------------------------- */
 
 const S = {
-  t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null,
-  sal:SALIENCE.natarczywy, notifTimers:[], notifPlanned:0, previewing:false,
+  t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null, practicePressedHold:null,
+  sal:SALIENCE.natarczywy, notifSet:"wciagajace", notifTimers:[], notifPlanned:0, previewing:false,
+  holding:false, holdTimer:null, msPerChar:[],
   order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
   events:[],         // surowy log zdarzeń
@@ -846,6 +897,18 @@ function validateForms(){
       const ds = [...p.dist].sort((a,b)=>a-b);
       for (let i=1;i<ds.length;i++)
         if (ds[i]-ds[i-1] < 4) bad.push(`${where}: powiadomienia w liniach ${ds[i-1]} i ${ds[i]} stoją zbyt blisko`);
+      const hold = p.hold || [];
+      hold.forEach(h => {
+        if (h < 1 || h > n) bad.push(`${where}: linia zatrzymana poza zakresem (${h})`);
+        if (anom.includes(h)) bad.push(`${where}: linia ${h} jest naraz zatrzymana i bez sensu`);
+        if (lag.has(h)) bad.push(`${where}: linia zatrzymana ${h} wpada w okno powrotu po powiadomieniu`);
+        if (afterProbe.has(h)) bad.push(`${where}: linia zatrzymana ${h} wypada tuż po sondzie`);
+        if (p.probe.includes(h)) bad.push(`${where}: sonda nie może wypadać po linii zatrzymanej (${h})`);
+        if (anom.some(a => Math.abs(a - h) === 1))
+          bad.push(`${where}: linia zatrzymana ${h} sąsiaduje z linią bez sensu`);
+        if (h < 8) bad.push(`${where}: linia zatrzymana ${h} jest za wcześnie — brak jeszcze oszacowania tempa`);
+      });
+      if (hold.length !== 2) bad.push(`${where}: ${hold.length} linii zatrzymanych zamiast 2`);
       if (p.questions.length !== 4) bad.push(`${where}: ${p.questions.length} pytania zamiast 4`);
     }
     totals.push([key, total]);
@@ -930,13 +993,15 @@ function renderStore(){
 }
 
 function toCSV(all){
-  const meta = ["code","form","salience","sound","startedAt","short","age","education",
+  const meta = ["code","form","salience","sound","notifSet","startedAt","short","age","education",
                 "sleep","caffeine","meds","diagnosis"];
   const met  = ["tau","tailRatio","mu","sigma","cv","slowBand","dprime","hits","misses","falseAlarms",
                 "detectLatency","offTaskRate","probeOnTask","probeMindWandering","probeTaskRelated",
                 "probeExternal","probeBlank","absorption","preProbeSdRatio","distractorCost",
                 "distractorsPlanned","distractorsShown","distractorsDelivered",
                 "distractorHoverRate","distractorHoverMs","distractorClicks",
+                "holdLines","holdCommission","holdPresses","holdFirstPressMs","holdTolerance",
+                "postErrorSlowing","postErrorN","vigilanceSlope",
                 "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
   const head = [...meta, ...met, "distractorLag1","distractorLag2","distractorLag3"];
   const cell = v => {
@@ -991,6 +1056,18 @@ function buildSalience(){
   box.addEventListener("change", syncSound);
   syncSound();
 }
+function buildNotifSets(){
+  const box = $("set-pick");
+  const labels = {neutralne:["Treści neutralne", "suche komunikaty informacyjne"],
+                  wciagajace:["Treści wciągające", "urwane zdania, niejasność społeczna, presja czasu"]};
+  Object.keys(NOTIF_SETS).forEach(k => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="nset" id="nset-${k}" value="${k}"${k==="wciagajace"?" checked":""}>` +
+      `<span>${labels[k][0]} <span class="muted small">— ${labels[k][1]}</span></span>`;
+    box.appendChild(l);
+  });
+}
+const currentSetKey = () => document.querySelector('input[name="nset"]:checked').value;
 const currentSalKey = () => document.querySelector('input[name="sal"]:checked').value;
 const syncSound = () => { $("sal-sound").checked = SALIENCE[currentSalKey()].sound; };
 const currentSal = () => ({...SALIENCE[currentSalKey()], key:currentSalKey(), sound:$("sal-sound").checked});
@@ -1000,6 +1077,7 @@ $("sal-demo").addEventListener("click", () => {
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   clearNotifs();
   S.sal = currentSal();
+  NOTIFS = NOTIF_SETS[currentSetKey()];
   S.previewing = true;
   NOTIFS.forEach((d, i) => S.notifTimers.push(setTimeout(() => showNotif(d, i), i * 750)));
   S.notifTimers.push(setTimeout(() => { clearNotifs(); S.previewing = false; },
@@ -1018,6 +1096,7 @@ function buildPreview(){
       if (anom) tags.push('<span class="pv-tag a">bez sensu</span>');
       if (p.dist.includes(n)) tags.push('<span class="pv-tag d">powiadomienie</span>');
       if (p.probe.includes(n)) tags.push('<span class="pv-tag p">sonda po tej linii</span>');
+      if ((p.hold||[]).includes(n)) tags.push('<span class="pv-tag h">zatrzymana</span>');
       return `<div class="pv-line${anom?" anom":""}"><span class="pv-n">${n}</span>` +
              `<span class="pv-t">${esc(lineText(l))}</span><span class="pv-tags">${tags.join("")}</span></div>`;
     }).join("");
@@ -1057,6 +1136,7 @@ $("pv-open").addEventListener("click", () => {
 
 buildFormPicker();
 buildSalience();
+buildNotifSets();
 buildMetaFields();
 renderStore();
 
@@ -1072,13 +1152,15 @@ function begin(){
   S.meta = readMeta();
   S.form = document.querySelector('input[name="form"]:checked').value;
   S.sal = currentSal();
+  S.notifSet = currentSetKey();
+  NOTIFS = NOTIF_SETS[S.notifSet];
   S.previewing = false;
   clearNotifs();
   initAudio();                       // kliknięcie „Rozpocznij" to gest, którego wymaga WebAudio
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   PASSAGES = FORMS[S.form].passages;
   S.order = $("short").checked ? [0] : PASSAGES.map((_,i)=>i);
-  log("session-start", {form:S.form, salience:S.sal.key, sound:S.sal.sound,
+  log("session-start", {form:S.form, salience:S.sal.key, sound:S.sal.sound, notifSet:S.notifSet,
                         short:$("short").checked, screen:`${screen.width}x${screen.height}`});
   $("intro").style.display = "none";
   document.addEventListener("keydown", onKeyDown);
@@ -1104,6 +1186,7 @@ function buildLines(passages, order){
       passage:p.id, pIdx, title:p.title, of:p.lines.length, n:i+1, text:lineText(l),
       chars:lineText(l).length, words:lineText(l).split(/\s+/).length,
       anomaly:isAnom(l), distractor:p.dist.includes(i+1), probeAfter:p.probe.includes(i+1),
+      held:(p.hold||[]).includes(i+1), holdMs:null, holdPresses:0, holdFirstMs:null,
       rt:null, visits:0, regressedFrom:0, flagged:false, flagRt:null
     }));
   });
@@ -1118,12 +1201,19 @@ function endPractice(){
   S.practiceCaught = !!(anom && anom.flagged);
   log("practice-end", {caught:S.practiceCaught});
   $("stage").classList.remove("on");
+  const heldLine = S.lines.find(l => l.held);
+  const pressed = heldLine && heldLine.holdPresses > 0;
+  S.practicePressedHold = !!pressed;
   $("ap-head").textContent = S.practiceCaught
     ? "Dokładnie o to chodzi."
     : "W tym tekście była jedna linia bez sensu.";
-  $("ap-body").textContent = S.practiceCaught
-    ? "Zdanie o proszeniu słońca o punktualniejsze górowanie było tym absurdem. Dalej wszystko wygląda tak samo, tylko teksty są dłuższe."
-    : "Zdanie o proszeniu słońca o punktualniejsze górowanie nie miało sensu — w takim miejscu naciśnij X. Nie szukaj ich na siłę; chodzi o to, czy zauważysz je, czytając normalnie.";
+  const partA = S.practiceCaught
+    ? "Zdanie o proszeniu słońca o punktualniejsze górowanie było tym absurdem. "
+    : "Zdanie o proszeniu słońca o punktualniejsze górowanie nie miało sensu — w takim miejscu naciśnij X. Nie szukaj ich na siłę; chodzi o to, czy zauważysz je, czytając normalnie. ";
+  const partB = pressed
+    ? "Jedna linia była też zatrzymana i naciśnięcie wtedy nic nie dało — przy napisie „Poczekaj” po prostu czekaj, linia przejdzie sama."
+    : "Jedna linia była też zatrzymana; poczekanie na nią było dokładnie tym, o co chodzi.";
+  $("ap-body").textContent = partA + partB;
   $("after-practice").classList.add("on");
   $("ap-go").focus();
 }
@@ -1140,6 +1230,64 @@ function startMeasured(){
   showLine();
 }
 
+/* ---------- linie zatrzymane ----------
+   Prepotentna reakcja („spacja dalej") jest do tego momentu wyćwiczona
+   na kilkudziesięciu liniach. Na linii zatrzymanej trzeba ją wstrzymać:
+   naciśnięcia w tym oknie to błędy komisji, czyli klasyczna miara
+   hamowania reakcji, której zadaniu wcześniej w ogóle brakowało.
+
+   Okno jest indywidualizowane — własne tempo badanego razy długość
+   linii, plus 2,2 s — więc obciążenie hamowaniem jest porównywalne
+   u osoby czytającej szybko i wolno.
+
+   Świadomie nie ma odliczania. Znajomość momentu końca czyni czekanie
+   łatwym; to niepewność co do tego, kiedy wolno zareagować, wywołuje
+   reakcje przedwczesne i o nią tu chodzi.                             */
+function medMsPerChar(){
+  return S.msPerChar.length >= 5 ? med(S.msPerChar) : 48;   // 48 ms/znak ≈ 250 słów/min
+}
+
+function beginHold(L){
+  const span = Math.min(Math.max(medMsPerChar() * L.chars, 1200), 7000);
+  L.holdMs = Math.round(span + 2200);
+  S.holding = true;
+  $("line").classList.add("held");
+  const badge = $("hold-badge");
+  badge.hidden = false;
+  badge.textContent = "Poczekaj — ta linia przejdzie sama";
+  log("hold-start", {i:S.li, ms:L.holdMs});
+  S.holdTimer = setTimeout(releaseHold, L.holdMs);
+}
+
+function holdPress(kind){
+  const L = S.lines[S.li];
+  L.holdPresses++;
+  if (L.holdFirstMs === null) L.holdFirstMs = Math.round(now() - S.lineOnset);
+  log("hold-press", {i:S.li, kind, n:L.holdPresses, ms:Math.round(now() - S.lineOnset)});
+  const badge = $("hold-badge");
+  badge.classList.remove("bad");
+  void badge.offsetWidth;                       // wymuś restart animacji
+  badge.classList.add("bad");
+}
+
+function endHoldVisuals(){
+  clearTimeout(S.holdTimer);
+  S.holding = false;
+  $("line").classList.remove("held");
+  $("hold-badge").hidden = true;
+  $("hold-badge").classList.remove("bad");
+}
+
+function releaseHold(){
+  const L = S.lines[S.li];
+  endHoldVisuals();
+  log("hold-end", {i:S.li, presses:L.holdPresses});
+  closeLine();
+  clearNotifs();
+  if (L.probeAfter && L.visits === 1) return openProbe();
+  nextLine();
+}
+
 function showLine(){
   const L = S.lines[S.li];
   const el = $("line");
@@ -1152,6 +1300,7 @@ function showLine(){
   S.lineOnset = now();
   log("line-onset", {i:S.li, visit:L.visits});
   if (L.distractor && L.visits === 1) scheduleNotifs();
+  if (L.held && L.visits === 1) beginHold(L); else endHoldVisuals();
 }
 
 /* Krótki sygnał generowany na miejscu — bez plików dźwiękowych.
@@ -1274,7 +1423,9 @@ function onKeyDown(e){
     e.preventDefault();
     if (!S.spaceDown) S.spaceDown = now();
   } else if (e.code === "ArrowLeft"){
-    e.preventDefault(); regress();
+    e.preventDefault();
+    if (S.holding) return holdPress("wstecz");
+    regress();
   } else if (e.code === "KeyX"){
     e.preventDefault(); flagLine();
   }
@@ -1283,6 +1434,7 @@ function onKeyUp(e){
   if (e.code === "Space" && S.spaceDown && $("stage").classList.contains("on")){
     S.holdTimes.push(now() - S.spaceDown);
     S.spaceDown = 0;
+    if (S.holding) return holdPress("spacja");
     advance();
   }
 }
@@ -1301,6 +1453,8 @@ function closeLine(){                 // czas pierwszej ekspozycji linii
   const L = S.lines[S.li];
   const rt = Math.round(now() - S.lineOnset);
   if (L.rt === null) L.rt = rt;
+  // Bieżące tempo służy do indywidualizacji okien zatrzymania.
+  if (!S.practice && !L.held && L.chars) S.msPerChar.push(rt / L.chars);
   return rt;
 }
 
@@ -1534,19 +1688,24 @@ const Z = p => { // przybliżenie odwrotnej dystrybuanty normalnej (Beasley–Sp
 
 function computeMetrics(){
   const rows = S.lines.map((L,k)=>({...L, k}));
-  const resid = residualize(rows);
-  rows.forEach((r,i)=> r.resid = resid[i]);
-  const rts = rows.map(r=>r.rt);
-  const perChar = rows.map(r=>r.rt/r.chars);
+  /* Czas linii zatrzymanej jest narzucony przez zadanie, nie wybrany
+     przez badanego — nie wolno go liczyć jako czasu czytania.        */
+  const rd = rows.filter(r => !r.held);
+  const residR = residualize(rd);
+  rd.forEach((r, i) => r.resid = residR[i]);
+  rows.forEach(r => { if (r.held) r.resid = null; });
+  const resid = rows.map(r => r.resid);          // pełna długość, null na zatrzymanych
+  const rts = rd.map(r=>r.rt);
+  const perChar = rd.map(r=>r.rt/r.chars);
 
   /* --- zmienność --- */
   const eg = exGauss(rts);
-  const cv = sd(resid) / (mean(rts)||1);
+  const cv = sd(residR) / (mean(rts)||1);
   /* Odporny odpowiednik tau: górna połowa rozkładu reszt w stosunku do
      mediany tempa. Nigdy się nie degeneruje i nie zależy od tego, jak
      szybko ktoś czyta.                                                */
-  const tail = (quantile(resid, 0.9) - quantile(resid, 0.5)) / (med(rts) || 1);
-  const slow = bandPower(resid, mean(rts)/1000, 0.03, 0.07);
+  const tail = (quantile(residR, 0.9) - quantile(residR, 0.5)) / (med(rts) || 1);
+  const slow = bandPower(residR, mean(rts)/1000, 0.03, 0.07);
 
   /* --- wykrywanie bezsensu (hit także gdy flaga padła linię później) --- */
   let hits=0, miss=0, fa=0, cr=0; const lat=[];
@@ -1579,7 +1738,7 @@ function computeMetrics(){
   const pre = off => {
     const vals=[];
     S.probes.filter(p => OFF_TASK.includes(p.key) === off).forEach(p=>{
-      const w = resid.slice(Math.max(0,p.lineIdx-3), p.lineIdx+1);
+      const w = resid.slice(Math.max(0,p.lineIdx-3), p.lineIdx+1).filter(v => v !== null);
       if (w.length>=3) vals.push(sd(w));
     });
     return vals.length ? mean(vals) : null;
@@ -1587,11 +1746,11 @@ function computeMetrics(){
   const preMW = pre(true), preOn = pre(false);
 
   /* --- dystraktory --- */
-  const base = rows.filter(r=>!r.distractor && !r.anomaly).map(r=>r.resid);
-  const dLines = rows.filter(r=>r.distractor).map(r=>r.resid);
+  const base = rd.filter(r=>!r.distractor && !r.anomaly).map(r=>r.resid);
+  const dLines = rd.filter(r=>r.distractor).map(r=>r.resid);
   const distCost = dLines.length ? mean(dLines) - mean(base) : null;
   const lagCost = [1,2,3].map(g => {
-    const v = rows.filter((r,i)=> rows[i-g] && rows[i-g].distractor && rows[i-g].passage===r.passage).map(r=>r.resid);
+    const v = rows.filter((r,i)=> rows[i-g] && rows[i-g].distractor && rows[i-g].passage===r.passage && !r.held).map(r=>r.resid);
     return v.length ? mean(v) - mean(base) : null;
   });
   /* Zdarzenia z bloku próbnego odcinamy tak samo, jak odcinamy jego
@@ -1611,12 +1770,52 @@ function computeMetrics(){
   const premature = perChar.filter(v=>v<12).length;
   const regressions = ev.filter(e=>e.type==="regression").length;
   const acc = S.quiz.length ? S.quiz.filter(q=>q.correct).length / S.quiz.length : null;
-  const totMs = rows.reduce((a,r)=>a+r.rt,0);
-  const wpm = totMs>0 ? rows.reduce((a,r)=>a+r.words,0)/(totMs/60000) : null;
+
+  /* --- hamowanie reakcji na liniach zatrzymanych --- */
+  const held = rows.filter(r => r.held);
+  const holdCommission = held.length ? held.filter(r => r.holdPresses > 0).length / held.length : null;
+  const holdPresses = held.reduce((a, r) => a + r.holdPresses, 0);
+  const holdFirst = med(held.map(r => r.holdFirstMs).filter(v => v !== null));
+  /* Ile czekania badany wytrzymał, zanim pierwszy raz nacisnął: udział
+     okna, który minął. Bliżej zera = mniejsza tolerancja czekania.    */
+  const holdTolerance = med(held.filter(r => r.holdFirstMs !== null)
+                                .map(r => r.holdFirstMs / r.holdMs));
+
+  /* --- korekta po błędzie ---
+     Po fałszywym alarmie i po błędzie komisji zdrowa reakcja to
+     zwolnienie na kolejnej linii. Osłabiona korekta jest w ADHD
+     opisywana niezależnie od samej liczby błędów.                    */
+  const postVals = [];
+  rows.forEach((r, i) => {
+    const isError = (r.held && r.holdPresses > 0)          // błąd komisji
+                 || (!r.held && !r.anomaly && r.flagged);  // fałszywy alarm
+    if (!isError) return;
+    const nxt = rows[i + 1];
+    if (nxt && !nxt.held && nxt.resid !== null && nxt.passage === r.passage) postVals.push(nxt.resid);
+  });
+  const postError = postVals.length ? mean(postVals) - mean(residR) : null;
+  const postErrorN = postVals.length;
+
+  /* --- spadek czujności w czasie ---
+     Nachylenie tempa (ms na znak) względem pozycji w sesji. Wskaźniki
+     zmienności celowo usuwają ten efekt regresją; tutaj raportujemy go
+     osobno, bo sam w sobie jest opisywanym markerem.                 */
+  const vig = (() => {
+    if (rd.length < 20) return null;
+    const xs = rd.map(r => r.k), ys = rd.map(r => r.rt / r.chars);
+    const mx = mean(xs), my = mean(ys);
+    const den = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+    if (!den) return null;
+    return xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / den * 10;  // na 10 linii
+  })();
+  const totMs = rd.reduce((a,r)=>a+r.rt,0);
+  const wpm = totMs>0 ? rd.reduce((a,r)=>a+r.words,0)/(totMs/60000) : null;
 
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
     cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
     clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
+    holdN:held.length, holdCommission, holdPresses, holdFirst, holdTolerance,
+    postError, postErrorN, vig,
     premature, regressions, acc, wpm,
     blurCount:S.blurCount, blurTotal:S.blurTotal,
     duration:(S.events[S.events.length-1].t)/60000,
@@ -1681,6 +1880,8 @@ function renderResults(M){
         <span><i style="border:2px solid var(--crit)"></i>linia bez sensu — wykryta</span>
         <span><i style="background:var(--ink-2)"></i>sonda: przy tekście</span>
         <span><i style="background:var(--crit)"></i>sonda: myślami gdzie indziej</span>
+        <span><i style="background:var(--ink-2)"></i>linia zatrzymana</span>
+        <span><i style="background:var(--crit); border-radius:50%"></i>naciśnięcie mimo zatrzymania</span>
       </div>
     </div>
   </section>
@@ -1734,6 +1935,22 @@ function renderResults(M){
 
   <section class="stack g4">
     <div class="stack g2">
+      <h2>Hamowanie i impulsywność</h2>
+      <p class="small muted">Linie zatrzymane wymagają wstrzymania reakcji wyćwiczonej na kilkudziesięciu
+        poprzednich liniach. Okno jest dopasowane do własnego tempa badanego, więc obciążenie jest
+        porównywalne u osoby czytającej szybko i wolno.</p>
+    </div>
+    <div class="metrics">
+      ${metricCard("Błędy komisji", M.holdCommission===null?"—":Math.round(M.holdCommission*100)+"%", "", `Odsetek z ${M.holdN} linii zatrzymanych, na których badany mimo wszystko nacisnął. Klasyczna miara nieudanego hamowania reakcji prepotentnej.`, band(M.holdCommission,0.15,0.4,1))}
+      ${metricCard("Naciśnięć łącznie", M.holdPresses, "", "Wliczając powtórzone naciśnięcia na tej samej linii. Wielokrotne dobijanie to inny wzorzec niż jedno wcześniejsze naciśnięcie — bliżej perseweracji motorycznej.", band(M.holdPresses,1,4,1))}
+      ${metricCard("Tolerancja czekania", M.holdTolerance===null?"—":Math.round(M.holdTolerance*100)+"%", "", "Jaka część okna zdążyła minąć, zanim padło pierwsze naciśnięcie. Im bliżej zera, tym krócej badany wytrzymywał czekanie. Liczone tylko z linii, na których w ogóle nacisnął.", band(M.holdTolerance,0.7,0.4,-1), -1)}
+      ${metricCard("Korekta po błędzie", M.postError===null?"—":(M.postError>0?"+":"")+fmt(M.postError,0), M.postError===null?"":" ms", `Zmiana tempa na linii po błędzie (${M.postErrorN} zdarzeń). Zdrowa reakcja to zwolnienie, czyli wartość dodatnia. Osłabiona korekta jest opisywana niezależnie od samej liczby błędów.`, band(M.postError,120,0,-1), -1)}
+      ${metricCard("Spadek czujności", M.vig===null?"—":(M.vig>0?"+":"")+fmt(M.vig,2), M.vig===null?"":" ms/znak", "Nachylenie tempa na 10 linii sesji. Dodatnie znaczy stopniowe zwalnianie. Wskaźniki zmienności celowo usuwają ten efekt regresją — tutaj jest raportowany osobno, bo sam w sobie coś znaczy.", band(M.vig,0.6,1.5,1))}
+    </div>
+  </section>
+
+  <section class="stack g4">
+    <div class="stack g2">
       <h2>Sposób poruszania się po tekście</h2>
       <p class="small muted">Ślad strategii, nie samej wydajności.</p>
     </div>
@@ -1775,10 +1992,12 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.4", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+    meta:{version:"0.5", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+          notifSet:S.notifSet,
           startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
-          short:$("short").checked, practiceCaught:S.practiceCaught},
+          short:$("short").checked, practiceCaught:S.practiceCaught,
+          practicePressedHold:S.practicePressedHold},
     lines:S.lines.map((L,i)=>({...L, resid:Math.round(M.resid[i])})),
     practiceLines:S.practiceLines,
     probes:S.probes, quiz:S.quiz, events:S.events,
@@ -1791,6 +2010,9 @@ function renderResults(M){
              distractorCost:M.distCost, distractorLagCost:M.lagCost, distractorClicks:M.clicks,
              distractorsPlanned:M.planned, distractorsShown:M.shown, distractorsDelivered:M.delivered,
              distractorHoverRate:M.hoverRate, distractorHoverMs:M.hoverMs,
+             holdLines:M.holdN, holdCommission:M.holdCommission, holdPresses:M.holdPresses,
+             holdFirstPressMs:M.holdFirst, holdTolerance:M.holdTolerance,
+             postErrorSlowing:M.postError, postErrorN:M.postErrorN, vigilanceSlope:M.vig,
              regressions:M.regressions, premature:M.premature, blurCount:M.blurCount,
              blurTotalMs:M.blurTotal, comprehension:M.acc, wpm:M.wpm, medianKeyHoldMs:M.hold}
   };
@@ -1836,7 +2058,7 @@ function drawTrace(M){
 
   const padL=44, padR=12, padT=16, padB=34;
   const n = M.rows.length;
-  const lim = Math.max(...M.resid.map(Math.abs), 300) * 1.1;
+  const lim = Math.max(...M.resid.filter(v=>v!==null).map(Math.abs), 300) * 1.1;
   const x = i => padL + (n<2?0:i*(W-padL-padR)/(n-1));
   const y = v => padT + (1 - (v+lim)/(2*lim)) * (H-padT-padB);
 
@@ -1866,10 +2088,27 @@ function drawTrace(M){
 
   /* przebieg */
   g.strokeStyle = col("--signal"); g.lineWidth = 1.6; g.beginPath();
-  M.resid.forEach((v,i)=> i? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
+  let pen = false;
+  M.resid.forEach((v,i)=>{                       // przerwij ślad na liniach zatrzymanych
+    if (v === null){ pen = false; return; }
+    if (pen) g.lineTo(x(i), y(v)); else g.moveTo(x(i), y(v));
+    pen = true;
+  });
   g.stroke();
   g.fillStyle = col("--signal");
-  M.resid.forEach((v,i)=>{ g.beginPath(); g.arc(x(i), y(v), 1.9, 0, 7); g.fill(); });
+  M.resid.forEach((v,i)=>{ if (v===null) return; g.beginPath(); g.arc(x(i), y(v), 1.9, 0, 7); g.fill(); });
+
+  /* linie zatrzymane: pionowa kreska, wypełniona gdy padło naciśnięcie */
+  M.rows.forEach((r,i)=>{
+    if (!r.held) return;
+    const top = padT + 6, bot = H - padB - 6;
+    g.strokeStyle = col("--ink-2"); g.lineWidth = 1; g.setLineDash([3,3]);
+    g.beginPath(); g.moveTo(x(i), top); g.lineTo(x(i), bot); g.stroke(); g.setLineDash([]);
+    if (r.holdPresses > 0){
+      g.fillStyle = col("--crit");
+      g.beginPath(); g.arc(x(i), top + 6, 3.2, 0, 7); g.fill();
+    }
+  });
 
   /* anomalie */
   M.rows.forEach((r,i)=>{
