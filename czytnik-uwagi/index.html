@@ -97,6 +97,8 @@ kbd{
 .pv-tag.h{background:var(--surface-2); color:var(--ink-2)}
 .pv-q{display:grid; grid-template-columns:1.4rem 1fr; gap:var(--s2) var(--s3); font-size:.86rem}
 .pv-q .ok{color:var(--signal); font-weight:500}
+.pv-q .lure{color:var(--crit)}
+.pv-tag.l{background:color-mix(in srgb,var(--crit) 16%,transparent); color:var(--crit)}
 input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 
 /* ---------- stage ---------- */
@@ -130,6 +132,33 @@ input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
   100%{color:var(--stage-sig); border-color:#24413e; transform:translateX(0)}
 }
 .stage-line.held{opacity:.72}
+#teaser{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:22%;
+  width:min(34em, calc(100vw - 4rem)); text-align:left; cursor:pointer;
+  border-top:2px solid var(--stage-sig); background:#111d1c;
+  padding:.85rem 1rem 1rem; border-radius:0 0 4px 4px;
+  box-shadow:0 12px 30px rgba(0,0,0,.4);
+  animation:tz-in .5s cubic-bezier(.2,.9,.3,1) both;
+}
+#teaser[hidden]{display:none}
+@keyframes tz-in{from{opacity:0; transform:translate(-50%,12px)} to{opacity:1; transform:translate(-50%,0)}}
+.tz-kicker{
+  font-family:"IBM Plex Mono",monospace; font-size:.65rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--stage-sig);
+}
+.tz-title{
+  font-family:Literata,Georgia,serif; font-size:1.02rem; font-weight:500;
+  color:var(--stage-ink); margin-top:.3rem; line-height:1.35;
+}
+.tz-body{
+  font-family:Literata,Georgia,serif; font-size:.88rem; line-height:1.55;
+  color:#b9c8c5; margin-top:.55rem;
+}
+.tz-body[hidden]{display:none}
+.tz-more{
+  font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--stage-dim); margin-top:.5rem;
+}
+#teaser:hover .tz-more{color:var(--stage-sig)}
 .flash{animation:flash .45s ease-out}
 @keyframes flash{0%{color:var(--stage-sig)}100%{color:var(--stage-ink)}}
 
@@ -293,7 +322,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.5</p>
+    <p class="eyebrow">Prototyp badawczy · v0.6</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -329,9 +358,7 @@ textarea{
   <section class="stack g4">
     <h2>Zanim zaczniesz</h2>
     <div class="notice stack g3">
-      <p class="small"><strong>Powiadomienia są częścią badania.</strong> W trakcie czytania pojawią się
-        powiadomienia wyglądające jak systemowe, czasem z dźwiękiem. Żadne z nich nie jest prawdziwe i nic
-        za nimi nie stoi. Nie klikaj ich i czytaj dalej — mierzymy właśnie to, ile kosztuje Cię ich zignorowanie.</p>
+      <p class="small" id="dist-instruction"></p>
       <p class="small"><strong>Pytania o myśli.</strong> Kilka razy czytanie przerwie pytanie o to, gdzie właśnie był
         Twój umysł. Odpowiadaj szczerze — „myślałem o czymś innym" jest tu poprawną i użyteczną odpowiedzią.</p>
       <p class="small"><strong>Nie zmieniaj kart ani okna.</strong> Jeśli to zrobisz, zostanie to zarejestrowane jako
@@ -362,7 +389,12 @@ textarea{
   </section>
 
   <section class="stack g4">
-    <h2>Powiadomienia</h2>
+    <h2>Co odciąga od tekstu</h2>
+    <div class="radio-row" id="mode-pick"></div>
+    <p class="small muted" style="max-width:40rem">Ciekawostka leży w tej samej powierzchni czytania i wolno ją
+      otworzyć — tak jak w prawdziwym czytaniu online. Każda niesie <strong>przynętę</strong>: prawdopodobnie
+      brzmiące twierdzenie sprzeczne z tekstem, odpowiadające jednej z odpowiedzi w pytaniu. Wybranie jej jest
+      dowodem, że badany zapamiętał dystraktor zamiast tekstu.</p>
     <div class="radio-row" id="sal-pick"></div>
     <label class="check"><input type="checkbox" id="sal-sound">
       <span class="small">Sygnał dźwiękowy. Najsilniejszy z bodźców, ale głośność zależy od sprzętu —
@@ -402,6 +434,12 @@ textarea{
   <div id="progress"></div>
   <div class="stage-line" id="line"></div>
   <div id="hold-badge" hidden></div>
+  <aside id="teaser" hidden>
+    <div class="tz-kicker">Ciekawostka</div>
+    <div class="tz-title" id="tz-title"></div>
+    <div class="tz-body" id="tz-body" hidden></div>
+    <div class="tz-more" id="tz-more">czytaj dalej ›</div>
+  </aside>
   <div class="stage-foot">
     <span id="foot-left"></span>
     <span><kbd>Spacja</kbd> dalej &nbsp; <kbd>←</kbd> wstecz &nbsp; <kbd>X</kbd> bez sensu</span>
@@ -496,6 +534,12 @@ const FORMS = {
 A: {label:"Forma A", passages:[
 {
   id:"baltyk", title:"Bałtyk", dist:[5,16], probe:[11,23], hold:[15,25],
+  teasers:[
+    {title:"Najszybciej wymieniające się morze świata", lure:{q:0, opt:0},
+     body:"Wąskie cieśniny duńskie działają jak dysza: cała objętość Bałtyku wymienia się w niecałe trzy lata, szybciej niż w jakimkolwiek innym morzu zamkniętym. Oceanografowie nazywają to efektem kominowym."},
+    {title:"Dlaczego wielkie wlewy zdarzają się zawsze zimą", lure:{q:3, opt:3},
+     body:"Wlewy słonej wody notuje się niemal wyłącznie między listopadem a lutym. Decyduje pora roku: chłodniejsza woda Morza Północnego jest gęstsza i łatwiej wsuwa się pod warstwę skokową."}
+  ],
   lines:[
     "Morze Bałtyckie jest jednym z najmłodszych mórz na naszej planecie.",
     "Powstało dopiero po ustąpieniu lądolodu, około dwunastu tysięcy lat temu.",
@@ -533,6 +577,12 @@ A: {label:"Forma A", passages:[
 },
 {
   id:"pszczoly", title:"Nawigacja pszczół", dist:[5,18], probe:[12,25], hold:[17,24],
+  teasers:[
+    {title:"Pszczoła, która liczy własne skrzydła", lure:{q:1, opt:0},
+     body:"Owad odmierza dystans, sumując uderzenia skrzydeł — około dwustu trzydziestu na sekundę. To najstarszy znany biologiczny licznik obrotów; potwierdzono go, doklejając robotnicom miniaturowe obciążniki."},
+    {title:"Taniec, który wychwala nektar", lure:{q:2, opt:1},
+     body:"Im dłuższa faza wywijana, tym słodszy pożytek — to jakość nektaru, a nie odległość, decyduje o czasie trwania tańca. Dlatego robotnice wracające z rzepaku tańczą najdłużej ze wszystkich."}
+  ],
   lines:[
     "Pszczoła miodna potrafi wrócić do ula z odległości kilku kilometrów.",
     "Nie korzysta przy tym z żadnego pojedynczego, niezawodnego zmysłu.",
@@ -570,6 +620,12 @@ A: {label:"Forma A", passages:[
 },
 {
   id:"papier", title:"Historia papieru", dist:[5,22], probe:[12,25], hold:[11,21],
+  teasers:[
+    {title:"Sekretny klej chińskich papierników", lure:{q:0, opt:1},
+     body:"Do kadzi dodawano wywar z korzenia hibiskusa — bez tego kleju roślinnego włókna nie chciały się ze sobą związać. Receptury pilnowano przez stulecia pod groźbą kary śmierci."},
+    {title:"Brzoza, która zmieniła druk", lure:{q:2, opt:1},
+     body:"Pomysł na papier z drewna podsunęła kora brzozy, od wieków używana na Rusi jako materiał piśmienny. Dopiero jej warstwowa struktura naprowadziła chemików na roztwarzanie drewna."}
+  ],
   lines:[
     "Papier wynaleziono w Chinach na długo przed jego pojawieniem się w Europie.",
     "Tradycja przypisuje ten wynalazek urzędnikowi dworskiemu Cai Lunowi.",
@@ -609,6 +665,12 @@ A: {label:"Forma A", passages:[
 B: {label:"Forma B", passages:[
 {
   id:"zmarzlina", title:"Wieczna zmarzlina", dist:[5,17], probe:[9,20], hold:[16,25],
+  teasers:[
+    {title:"Bomba węglowa pod Syberią", lure:{q:1, opt:3},
+     body:"W zmarzlinie uwięziono około stu razy więcej węgla, niż zawiera cała atmosfera. Gdyby uwolnił się choćby jeden procent, budżet klimatyczny stulecia przestałby istnieć."},
+    {title:"Arktyka topnieje dziesięć razy szybciej", lure:{q:3, opt:3},
+     body:"Najnowsze pomiary satelitarne wskazują tempo ocieplania dziesięciokrotnie wyższe niż średnia planetarna. Zjawisko nazwano wzmocnieniem arktycznym."}
+  ],
   lines:[
     "Wieczna zmarzlina to grunt, który pozostaje zamarznięty przez co najmniej dwa lata.",
     "Pokrywa mniej więcej jedną piątą lądów półkuli północnej.",
@@ -646,6 +708,12 @@ B: {label:"Forma B", passages:[
 },
 {
   id:"wegorz", title:"Wędrówki węgorza", dist:[5,17], probe:[9,20], hold:[16,25],
+  teasers:[
+    {title:"Węgorz, który ucieka przed księżycem", lure:{q:2, opt:1},
+     body:"Nocą węgorze schodzą na kilkaset metrów, a za dnia wracają pod powierzchnię — odwrotnie niż większość ryb. Uciekają przed światłem księżyca, które zdradza je drapieżnikom."},
+    {title:"Dlaczego hodowla węgorza wciąż zawodzi", lure:{q:3, opt:0},
+     body:"Problemem nie są larwy, tylko transport: dorosłe ryby nie przeżywają przewozu do zbiorników tarłowych. Straty sięgają dziewięćdziesięciu procent jeszcze przed tarłem."}
+  ],
   lines:[
     "Węgorz europejski rodzi się i ginie w Morzu Sargassowym.",
     "Całą resztę życia spędza natomiast w rzekach i jeziorach Europy.",
@@ -683,6 +751,12 @@ B: {label:"Forma B", passages:[
 },
 {
   id:"szklo", title:"Historia szkła", dist:[5,17], probe:[9,20], hold:[16,25],
+  teasers:[
+    {title:"Wapno, czyli oszczędność opału", lure:{q:0, opt:0},
+     body:"Dodatek wapna obniża temperaturę topnienia o kolejne dwieście stopni — to dzięki niemu średniowieczne huty mogły w ogóle pracować na drewnie zamiast na węglu drzewnym."},
+    {title:"Tafla, która stygnie na stali", lure:{q:3, opt:1},
+     body:"Współczesne szyby powstają na taśmie z polerowanej stali nierdzewnej, chłodzonej wodą od spodu. Metoda wyparła dawne wylewanie na metalach ciekłych."}
+  ],
   lines:[
     "Szkło powstaje ze stopienia piasku kwarcowego w bardzo wysokiej temperaturze.",
     "Czysty kwarc topi się dopiero powyżej tysiąca siedmiuset stopni.",
@@ -726,6 +800,10 @@ B: {label:"Forma B", passages:[
    trzeba się nauczyć, zanim zaczną coś znaczyć. Nie wchodzi do wskaźników. */
 const PRACTICE = {
   id:"proba", title:"Część próbna", dist:[7], probe:[], hold:[6],
+  // Bez przynęty: część próbna nie ma pytań, a ma tylko pokazać, czym
+  // ciekawostka jest i że wolno ją otworzyć.
+  teasers:[{title:"Kraj, który przeskoczył cały dzień", lure:null,
+    body:"Samoa w 2011 roku przesunęło się na drugą stronę linii zmiany daty i 30 grudnia po prostu nie istniał w kalendarzu. Mieszkańcy położyli się spać w czwartek, a obudzili w sobotę."}],
   lines:[
     "Zanim wprowadzono strefy czasowe, każde miasto miało własną godzinę.",
     "Zegar ustawiano według górowania słońca nad danym miejscem.",
@@ -822,6 +900,17 @@ let NOTIFS = NOTIF_SETS.wciagajace;
 /* Natarczywość jest parametrem badania, nie ustawieniem estetycznym:
    zapisuje się w metryczce, żeby dało się ją utrzymać stałą albo
    celowo manipulować nią między grupami.                             */
+/* Czym wypełnić gniazdo dystraktora. Powiadomienie systemowe jest
+   bodźcem zewnętrznym, który badanemu każemy ignorować — i badany wie,
+   że jest sfingowane. Ciekawostka leży w tej samej powierzchni czytania,
+   wolno ją przeczytać i naprawdę bywa ciekawsza od akapitu. Dlatego
+   wciąga w sposób, którego popup nie odtworzy.                        */
+const DIST_MODES = {
+  ciekawostki: ["Ciekawostki w tekście", "pudełko „polecane” obok czytanej linii, wolno je otworzyć"],
+  systemowe:   ["Powiadomienia systemowe", "karty w rogu ekranu, badany ma je ignorować"],
+  oba:         ["Naprzemiennie", "pierwsze gniazdo w tekście, drugie w rogu ekranu"]
+};
+
 const SALIENCE = {
   lagodny:     {label:"Łagodny",     hint:"jedna dyskretna karta, 3,5 s",              count:1, delay:450, life:3500, typing:false, sound:false},
   standardowy: {label:"Standardowy", hint:"jedna karta systemowa, 5 s",                count:1, delay:400, life:5000, typing:true,  sound:false},
@@ -849,7 +938,8 @@ const OFF_TASK = ["mw","task-rel","external","blank"];
 
 const S = {
   t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null, practicePressedHold:null,
-  sal:SALIENCE.natarczywy, notifSet:"wciagajace", notifTimers:[], notifPlanned:0, previewing:false,
+  sal:SALIENCE.natarczywy, notifSet:"wciagajace", distMode:"ciekawostki",
+  teasers:[], tzCurrent:null, notifTimers:[], notifPlanned:0, previewing:false,
   holding:false, holdTimer:null, msPerChar:[],
   order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
@@ -993,13 +1083,15 @@ function renderStore(){
 }
 
 function toCSV(all){
-  const meta = ["code","form","salience","sound","notifSet","startedAt","short","age","education",
+  const meta = ["code","form","distMode","salience","sound","notifSet","startedAt","short","age","education",
                 "sleep","caffeine","meds","diagnosis"];
   const met  = ["tau","tailRatio","mu","sigma","cv","slowBand","dprime","hits","misses","falseAlarms",
                 "detectLatency","offTaskRate","probeOnTask","probeMindWandering","probeTaskRelated",
                 "probeExternal","probeBlank","absorption","preProbeSdRatio","distractorCost",
                 "distractorsPlanned","distractorsShown","distractorsDelivered",
                 "distractorHoverRate","distractorHoverMs","distractorClicks",
+                "teasersShown","teaserOpenRate","teaserDwellMs","lureQuestions","lureRate",
+                "lureShareOfErrors","comprehensionLure","comprehensionClean","lureCost",
                 "holdLines","holdCommission","holdPresses","holdFirstPressMs","holdTolerance",
                 "postErrorSlowing","postErrorN","vigilanceSlope",
                 "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
@@ -1056,6 +1148,28 @@ function buildSalience(){
   box.addEventListener("change", syncSound);
   syncSound();
 }
+function buildDistModes(){
+  const box = $("mode-pick");
+  Object.entries(DIST_MODES).forEach(([k, [label, hint]]) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="dmode" id="dmode-${k}" value="${k}"${k==="ciekawostki"?" checked":""}>` +
+      `<span>${label} <span class="muted small">— ${hint}</span></span>`;
+    box.appendChild(l);
+  });
+  box.addEventListener("change", syncInstruction);
+}
+const currentModeKey = () => document.querySelector('input[name="dmode"]:checked').value;
+
+const MODE_INSTRUCTION = {
+  ciekawostki: "<strong>Obok tekstu będą pojawiać się ciekawostki.</strong> Wolno je otwierać — to Twój wybór, " +
+    "dokładnie jak przy czytaniu w internecie. Nie ma tu dobrej ani złej decyzji, więc rób to, co zrobiłbyś normalnie.",
+  systemowe: "<strong>Powiadomienia są częścią badania.</strong> Pojawią się karty wyglądające jak systemowe, " +
+    "czasem z dźwiękiem. Żadna nie jest prawdziwa i nic za nią nie stoi. Nie klikaj ich i czytaj dalej.",
+  oba: "<strong>Obok tekstu pojawią się ciekawostki, a w rogu ekranu powiadomienia.</strong> Ciekawostki wolno " +
+    "otwierać — to Twój wybór. Powiadomień systemowych nie klikaj; żadne nie jest prawdziwe."
+};
+function syncInstruction(){ $("dist-instruction").innerHTML = MODE_INSTRUCTION[currentModeKey()]; }
+
 function buildNotifSets(){
   const box = $("set-pick");
   const labels = {neutralne:["Treści neutralne", "suche komunikaty informacyjne"],
@@ -1100,11 +1214,24 @@ function buildPreview(){
       return `<div class="pv-line${anom?" anom":""}"><span class="pv-n">${n}</span>` +
              `<span class="pv-t">${esc(lineText(l))}</span><span class="pv-tags">${tags.join("")}</span></div>`;
     }).join("");
-    const qs = p.questions.map((q, i) =>
-      `<div class="pv-q"><span class="mono muted">${i+1}.</span><span>${esc(q.q)}<br>` +
-      q.o.map((o, j) => `<span class="${j===q.c?"ok":"muted"}">${j===q.c?"✓ ":"· "}${esc(o)}</span>`).join("<br>") +
-      `</span></div>`).join("");
+    const lureFor = {};
+    (p.teasers || []).forEach((t, k) => { if (t.lure) lureFor[t.lure.q] = {opt:t.lure.opt, k}; });
+    const qs = p.questions.map((q, i) => {
+      const lu = lureFor[i];
+      return `<div class="pv-q"><span class="mono muted">${i+1}.</span><span>${esc(q.q)}` +
+        (lu ? ` <span class="pv-tag l">przynęta z ciekawostki ${lu.k+1}</span>` : "") + `<br>` +
+        q.o.map((o, j) => {
+          const cls = j===q.c ? "ok" : (lu && j===lu.opt ? "lure" : "muted");
+          const mark = j===q.c ? "✓ " : (lu && j===lu.opt ? "✗ " : "· ");
+          return `<span class="${cls}">${mark}${esc(o)}</span>`;
+        }).join("<br>") + `</span></div>`;
+    }).join("");
+    const tzs = (p.teasers || []).map((t, k) =>
+      `<div class="pv-q"><span class="mono muted">${k+1}.</span><span><strong>${esc(t.title)}</strong>` +
+      ` <span class="muted small">— w gnieździe linii ${p.dist[k]}</span><br>` +
+      `<span class="muted">${esc(t.body)}</span></span></div>`).join("");
     return `<section class="stack g4">${head?`<h3>${p.title}</h3>`:""}<div class="card">${lines}</div>` +
+           (tzs ? `<div class="card stack g4"><p class="eyebrow">Ciekawostki (treść sprzeczna z tekstem)</p>${tzs}</div>` : "") +
            (qs ? `<div class="card stack g4"><p class="eyebrow">Pytania o treść</p>${qs}</div>` : "") + `</section>`;
   };
 
@@ -1135,6 +1262,8 @@ $("pv-open").addEventListener("click", () => {
 });
 
 buildFormPicker();
+buildDistModes();
+syncInstruction();
 buildSalience();
 buildNotifSets();
 buildMetaFields();
@@ -1153,6 +1282,8 @@ function begin(){
   S.form = document.querySelector('input[name="form"]:checked').value;
   S.sal = currentSal();
   S.notifSet = currentSetKey();
+  S.distMode = currentModeKey();
+  S.teasers = [];
   NOTIFS = NOTIF_SETS[S.notifSet];
   S.previewing = false;
   clearNotifs();
@@ -1160,7 +1291,8 @@ function begin(){
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   PASSAGES = FORMS[S.form].passages;
   S.order = $("short").checked ? [0] : PASSAGES.map((_,i)=>i);
-  log("session-start", {form:S.form, salience:S.sal.key, sound:S.sal.sound, notifSet:S.notifSet,
+  log("session-start", {form:S.form, salience:S.sal.key, sound:S.sal.sound,
+                        notifSet:S.notifSet, distMode:S.distMode,
                         short:$("short").checked, screen:`${screen.width}x${screen.height}`});
   $("intro").style.display = "none";
   document.addEventListener("keydown", onKeyDown);
@@ -1187,6 +1319,8 @@ function buildLines(passages, order){
       chars:lineText(l).length, words:lineText(l).split(/\s+/).length,
       anomaly:isAnom(l), distractor:p.dist.includes(i+1), probeAfter:p.probe.includes(i+1),
       held:(p.hold||[]).includes(i+1), holdMs:null, holdPresses:0, holdFirstMs:null,
+      distSlot:p.dist.indexOf(i+1),
+      teaser:(p.teasers && p.teasers[p.dist.indexOf(i+1)]) || null,
       rt:null, visits:0, regressedFrom:0, flagged:false, flagRt:null
     }));
   });
@@ -1225,6 +1359,7 @@ function startMeasured(){
   S.li = 0;
   S.distractorShown = 0;
   S.notifPlanned = 0;                // blok próbny nie wlicza się do wskaźników
+  S.teasers = [];
   log("measured-start", {});
   $("stage").classList.add("on");
   showLine();
@@ -1299,7 +1434,7 @@ function showLine(){
   L.visits++;
   S.lineOnset = now();
   log("line-onset", {i:S.li, visit:L.visits});
-  if (L.distractor && L.visits === 1) scheduleNotifs();
+  if (L.distractor && L.visits === 1) fireDistractor(L);
   if (L.held && L.visits === 1) beginHold(L); else endHoldVisuals();
 }
 
@@ -1397,6 +1532,73 @@ function dropNotif(el){
    jedną, przez co liczba bodźców zależałaby od tempa czytania.
    Zaplanowane i faktycznie wyświetlone liczymy osobno, żeby ta resztka
    zależności była widoczna w danych, a nie ukryta.                    */
+/* ---------- ciekawostki w powierzchni czytania ----------
+   Nie ma zakazu klikania. Otwarcie ciekawostki jest zachowaniem
+   naturalnym, a nie złamaniem instrukcji, i właśnie dlatego mierzy coś
+   innego niż kliknięcie w powiadomienie: dobrowolne porzucenie zadania
+   na rzecz treści, która wydała się ciekawsza.
+
+   Każda ciekawostka niesie przynętę — konkretne, prawdopodobnie
+   brzmiące twierdzenie sprzeczne z tekstem, odpowiadające jednej
+   z odpowiedzi w pytaniu o treść. Wybranie tej odpowiedzi jest
+   bezpośrednim dowodem, że badany zapamiętał dystraktor zamiast tekstu:
+   pomyłka co do źródła, a nie zwykły brak wiedzy.                     */
+let tzOpenedAt = 0;
+
+function showTeaser(t, passage, slot){
+  const el = $("teaser");
+  $("tz-title").textContent = t.title;
+  $("tz-body").textContent = t.body;
+  $("tz-body").hidden = true;
+  $("tz-more").textContent = "czytaj dalej ›";
+  el.hidden = false;
+  const rec = {passage, slot, title:t.title, lure:t.lure, opened:false, dwellMs:0, hoverMs:null};
+  S.teasers.push(rec);
+  S.tzCurrent = rec;
+  tzOpenedAt = 0;
+  const shownAt = now();
+  log("teaser-show", {i:S.li, passage, slot});
+
+  el.onmouseenter = () => {
+    if (rec.hoverMs !== null) return;
+    rec.hoverMs = Math.round(now() - shownAt);
+    log("teaser-hover", {i:S.li, ms:rec.hoverMs});
+  };
+  el.onclick = () => {
+    if (!rec.opened){
+      rec.opened = true;
+      tzOpenedAt = now();
+      $("tz-body").hidden = false;
+      $("tz-more").textContent = "— naciśnij spację, żeby wrócić do tekstu";
+      log("teaser-open", {i:S.li, ms:Math.round(now() - shownAt)});
+    }
+  };
+}
+
+function hideTeaser(){
+  const el = $("teaser");
+  if (el.hidden) return;
+  if (S.tzCurrent && tzOpenedAt){
+    S.tzCurrent.dwellMs = Math.round(now() - tzOpenedAt);
+    log("teaser-close", {i:S.li, dwell:S.tzCurrent.dwellMs});
+  }
+  el.hidden = true;
+  el.onclick = null; el.onmouseenter = null;
+  S.tzCurrent = null; tzOpenedAt = 0;
+}
+
+/* Gniazdo dystraktora wypełnia ciekawostka albo powiadomienie —
+   liczba zdarzeń jest ta sama w każdym trybie.                        */
+function fireDistractor(L){
+  const useTeaser = S.distMode === "ciekawostki"
+                 || (S.distMode === "oba" && L.distSlot % 2 === 0);
+  /* Ciekawostka wisi na rekordzie linii, a nie jest wyszukiwana po
+     indeksie tekstu: w bloku próbnym pIdx wskazywałby na pierwszy
+     tekst pomiarowy i badany zobaczyłby przynętę przed pomiarem.     */
+  if (useTeaser && L.teaser) showTeaser(L.teaser, L.passage, L.distSlot);
+  else scheduleNotifs();
+}
+
 function scheduleNotifs(){
   const first = S.distractorShown % NOTIFS.length;
   S.distractorShown += S.sal.count;
@@ -1408,6 +1610,7 @@ function scheduleNotifs(){
 }
 
 function clearNotifs(){
+  hideTeaser();
   S.notifTimers.forEach(clearTimeout);
   S.notifTimers = [];
   ["tr","br","tc"].forEach(a => { $("na-" + a).innerHTML = ""; });
@@ -1572,6 +1775,14 @@ function handleQuizKey(e){
 function answerQuiz(i){
   const p = PASSAGES[quizP], q = p.questions[quizQ];
   const rec = {passage:p.id, q:quizQ, answer:i, correct:i === q.c, rt:Math.round(now() - quizOnset)};
+  /* Przynęta liczy się tylko wtedy, gdy ciekawostka faktycznie się
+     pokazała — w trybie samych powiadomień pytanie jest zwyczajne.   */
+  const t = S.teasers.find(x => x.passage === p.id && x.lure && x.lure.q === quizQ);
+  if (t){
+    rec.lureOpt = t.lure.opt;
+    rec.pickedLure = i === t.lure.opt;
+    rec.lureOpened = t.opened;
+  }
   S.quiz.push(rec);
   log("quiz-answer", rec);
   if (quizQ + 1 < p.questions.length) return openQuiz(quizP, quizQ + 1);
@@ -1771,6 +1982,25 @@ function computeMetrics(){
   const regressions = ev.filter(e=>e.type==="regression").length;
   const acc = S.quiz.length ? S.quiz.filter(q=>q.correct).length / S.quiz.length : null;
 
+  /* --- ciekawostki i kontaminacja źródła ---
+     Wskaźnik przynęty rozdziela dwie zupełnie różne porażki: „nie
+     zapamiętałem tekstu" (błąd rozłożony po opcjach) od „zapamiętałem
+     dystraktor zamiast tekstu" (błąd skupiony na przynęcie).        */
+  const tz = S.teasers;
+  const tzOpened = tz.filter(t => t.opened).length;
+  const tzOpenRate = tz.length ? tzOpened / tz.length : null;
+  const tzDwell = tz.reduce((a, t) => a + (t.dwellMs || 0), 0);
+  const tzHover = med(tz.map(t => t.hoverMs).filter(v => v !== null));
+
+  const lureQs = S.quiz.filter(q => q.lureOpt !== undefined);
+  const cleanQs = S.quiz.filter(q => q.lureOpt === undefined);
+  const lureRate = lureQs.length ? lureQs.filter(q => q.pickedLure).length / lureQs.length : null;
+  const lureErrs = lureQs.filter(q => !q.correct);
+  const lureShareErr = lureErrs.length ? lureErrs.filter(q => q.pickedLure).length / lureErrs.length : null;
+  const accLure = lureQs.length ? lureQs.filter(q => q.correct).length / lureQs.length : null;
+  const accClean = cleanQs.length ? cleanQs.filter(q => q.correct).length / cleanQs.length : null;
+  const lureCost = (accLure !== null && accClean !== null) ? accClean - accLure : null;
+
   /* --- hamowanie reakcji na liniach zatrzymanych --- */
   const held = rows.filter(r => r.held);
   const holdCommission = held.length ? held.filter(r => r.holdPresses > 0).length / held.length : null;
@@ -1814,6 +2044,8 @@ function computeMetrics(){
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
     cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
     clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
+    tzShown:tz.length, tzOpened, tzOpenRate, tzDwell, tzHover,
+    lureQs:lureQs.length, lureRate, lureShareErr, accLure, accClean, lureCost,
     holdN:held.length, holdCommission, holdPresses, holdFirst, holdTolerance,
     postError, postErrorN, vig,
     premature, regressions, acc, wpm,
@@ -1933,6 +2165,22 @@ function renderResults(M){
     </div>
   </section>
 
+  ${M.tzShown ? `<section class="stack g4">
+    <div class="stack g2">
+      <h2>Konkurencja o uwagę</h2>
+      <p class="small muted">Ciekawostka nie jest zakazana — wolno ją otworzyć, jak w każdym tekście
+        czytanym online. Niesie za to twierdzenie sprzeczne z tekstem, które wraca potem jako jedna
+        z odpowiedzi.</p>
+    </div>
+    <div class="metrics">
+      ${metricCard("Przynęta w odpowiedzi", M.lureRate===null?"—":Math.round(M.lureRate*100)+"%", "", `Odsetek z ${M.lureQs} pytań, w których badany wybrał twierdzenie z ciekawostki zamiast treści tekstu. To nie jest zwykły brak wiedzy — to zapamiętanie dystraktora jako źródła.`, band(M.lureRate,0.15,0.4,1))}
+      ${metricCard("Przynęty wśród błędów", M.lureShareErr===null?"—":Math.round(M.lureShareErr*100)+"%", "", "Jaka część błędnych odpowiedzi na pytaniach z przynętą to właśnie przynęta. Przy czystym zgadywaniu byłoby to około 33%. Wyraźnie więcej znaczy, że błędy nie są losowe, tylko skupione na dystraktorze.", band(M.lureShareErr,0.4,0.7,1))}
+      ${metricCard("Koszt kontaminacji", M.lureCost===null?"—":(M.lureCost>0?"−":"+")+Math.abs(Math.round(M.lureCost*100))+" pkt", "", `Rozumienie pytań bez przynęty ${M.accClean===null?"—":Math.round(M.accClean*100)+"%"} wobec pytań z przynętą ${M.accLure===null?"—":Math.round(M.accLure*100)+"%"}. Różnica pokazuje, ile kosztowała sama obecność konkurencyjnej treści.`, band(M.lureCost,0.1,0.3,1))}
+      ${metricCard("Ciekawostki otwarte", M.tzOpenRate===null?"—":Math.round(M.tzOpenRate*100)+"%", "", `${M.tzOpened} z ${M.tzShown}. Nikt tego nie zabraniał, więc otwarcie nie jest złamaniem instrukcji — to dobrowolne porzucenie zadania na rzecz treści, która wydała się ciekawsza.`, band(M.tzOpenRate,0.34,0.67,1))}
+      ${metricCard("Czas w ciekawostkach", fmt(M.tzDwell/1000,1), " s", `Łączny czas z rozwiniętą treścią${M.tzHover===null?"":`; pierwsze spojrzenie po ${Math.round(M.tzHover)} ms`}. Czas ten nie wchodzi do tempa czytania, bo linia i tak trwa do naciśnięcia spacji.`, "")}
+    </div>
+  </section>` : ""}
+
   <section class="stack g4">
     <div class="stack g2">
       <h2>Hamowanie i impulsywność</h2>
@@ -1978,6 +2226,16 @@ function renderResults(M){
     </div>
   </section>
 
+  ${M.tzShown ? `<section class="stack g4">
+    <div class="stack g2">
+      <h2>Sprostowanie</h2>
+      <p class="small muted">Ciekawostki pokazywane w trakcie czytania zawierały twierdzenia nieprawdziwe —
+        na tym polegał pomiar. Nie wolno zostawić badanego z fałszywą wiedzą, więc poniżej jest, jak jest
+        naprawdę. Ten ekran pokaż badanemu.</p>
+    </div>
+    <div class="card stack g5">${correctionsHTML()}</div>
+  </section>` : ""}
+
   <section class="notice stack g3">
     <p class="small"><strong>To nie jest test diagnostyczny.</strong> Narzędzie nie zostało znormalizowane
       ani zwalidowane. Żaden pojedynczy wskaźnik ani ich kombinacja nie rozstrzyga o obecności ADHD —
@@ -1992,13 +2250,14 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.5", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
-          notifSet:S.notifSet,
+    meta:{version:"0.6", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+          notifSet:S.notifSet, distMode:S.distMode,
           startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
           short:$("short").checked, practiceCaught:S.practiceCaught,
           practicePressedHold:S.practicePressedHold},
-    lines:S.lines.map((L,i)=>({...L, resid:Math.round(M.resid[i])})),
+    lines:S.lines.map((L,i)=>({...L, resid:M.resid[i]===null?null:Math.round(M.resid[i])})),
+    teasers:S.teasers,
     practiceLines:S.practiceLines,
     probes:S.probes, quiz:S.quiz, events:S.events,
     metrics:{tau:M.eg.tau, tailRatio:M.tail, skew:M.eg.skew, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
@@ -2010,6 +2269,10 @@ function renderResults(M){
              distractorCost:M.distCost, distractorLagCost:M.lagCost, distractorClicks:M.clicks,
              distractorsPlanned:M.planned, distractorsShown:M.shown, distractorsDelivered:M.delivered,
              distractorHoverRate:M.hoverRate, distractorHoverMs:M.hoverMs,
+             teasersShown:M.tzShown, teasersOpened:M.tzOpened, teaserOpenRate:M.tzOpenRate,
+             teaserDwellMs:M.tzDwell, teaserHoverMs:M.tzHover,
+             lureQuestions:M.lureQs, lureRate:M.lureRate, lureShareOfErrors:M.lureShareErr,
+             comprehensionLure:M.accLure, comprehensionClean:M.accClean, lureCost:M.lureCost,
              holdLines:M.holdN, holdCommission:M.holdCommission, holdPresses:M.holdPresses,
              holdFirstPressMs:M.holdFirst, holdTolerance:M.holdTolerance,
              postErrorSlowing:M.postError, postErrorN:M.postErrorN, vigilanceSlope:M.vig,
@@ -2044,6 +2307,23 @@ function renderResults(M){
   drawTrace(M);
   matchMedia("(prefers-color-scheme:dark)").addEventListener("change", ()=>drawTrace(M));
   addEventListener("resize", ()=>drawTrace(M));
+}
+
+/* Sprostowanie: karmienie badanego nieprawdziwymi twierdzeniami bez
+   ich odkręcenia nie jest dopuszczalne, niezależnie od tego, jak dobrym
+   są wskaźnikiem.                                                     */
+function correctionsHTML(){
+  const all = Object.values(FORMS).flatMap(f => f.passages);
+  return S.teasers.map(t => {
+    const p = all.find(x => x.id === t.passage);
+    const q = p && t.lure ? p.questions[t.lure.q] : null;
+    const claim = (p && p.teasers ? (p.teasers[t.slot] || {}).body : "") || "";
+    return `<div class="stack g2">
+      <p class="small"><span class="pill hi">nieprawda</span></p>
+      <p class="small"><strong>${t.title}</strong> — ${claim}</p>
+      ${q ? `<p class="small muted">W rzeczywistości: ${q.q.replace(/\?$/, "")} — <strong>${q.o[q.c]}</strong>.</p>` : ""}
+    </div>`;
+  }).join('<hr class="rule">');
 }
 
 /* ---------- wykres przebiegu ---------- */

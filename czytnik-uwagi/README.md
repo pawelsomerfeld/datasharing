@@ -71,12 +71,78 @@ W tekst wplecione są cztery niezależne kanały pomiarowe:
 | **Sondy myśli** | przerwanie: kategoria myśli, potem ocena wciągnięcia 1–5 | samoopis uwagi, do skonfrontowania z czasami |
 | **Powiadomienia** | karty odwzorowujące systemowe: macOS, Windows 11, komunikator, baner mobilny, pasek postępu | koszt zakłócenia, tempo powrotu, orientacja wzroku |
 | **Linie zatrzymane** | 2 na tekst, tekst widoczny, ale przejść dalej nie wolno | hamowanie reakcji prepotentnej, tolerancja czekania |
+| **Ciekawostki z przynętą** | 2 na tekst, w powierzchni czytania, wolno je otworzyć | dobrowolne porzucenie zadania, pomyłka co do źródła |
 
 Kanały pasywne, o których badany nie myśli: powroty do poprzedniej linii (`←`),
 przejścia szybsze niż fizycznie możliwe do przeczytania, czas trzymania klawisza,
 utrata fokusu okna. Na końcu każdego tekstu — cztery pytania o treść.
 
 Czas: 12–18 minut, tryb skrócony ok. 5.
+
+## Co odciąga od tekstu
+
+Powiadomienie systemowe jest bodźcem nienaturalnym z dwóch powodów naraz: badany wie,
+że jest sfingowane, i każemy mu je ignorować. W prawdziwym czytaniu nikt niczego nie
+zabrania — odciąga cię **coś ciekawszego na tej samej stronie**, i wolno ci tam pójść.
+
+Dlatego gniazdo dystraktora można wypełnić jednym z trzech:
+
+| Tryb | Co się pojawia | Co mierzy |
+|---|---|---|
+| **Ciekawostki** *(domyślny)* | pudełko „polecane” w powierzchni czytania, wolno je otworzyć | dobrowolne porzucenie zadania, kontaminacja pamięci |
+| Powiadomienia systemowe | karty w rogu ekranu, badany ma je ignorować | koszt przerwania i tempo powrotu |
+| Naprzemiennie | pierwsze gniazdo w tekście, drugie w rogu | oba naraz |
+
+Liczba zdarzeń jest w każdym trybie ta sama, więc harmonogram i walidator się nie zmieniają.
+
+### Przynęta, czyli pomyłka co do źródła
+
+To jest najmocniejszy pomiar w całym narzędziu. Każda ciekawostka niesie **konkretne,
+prawdopodobnie brzmiące twierdzenie sprzeczne z tekstem** — i to twierdzenie wraca potem
+jako jedna z odpowiedzi w pytaniu o treść.
+
+Tekst mówi, że pełna wymiana wód Bałtyku zajmuje około trzydziestu lat. Ciekawostka obok
+głosi: „Wąskie cieśniny duńskie działają jak dysza: cała objętość wymienia się w niecałe
+trzy lata”. Pytanie na końcu ma wśród odpowiedzi „Około trzech lat”.
+
+Wybranie jej **nie jest zwykłym brakiem wiedzy.** To dowód, że badany zapamiętał
+dystraktor jako źródło — pomyłka co do źródła, nie luka w pamięci. Dokładnie ta sytuacja,
+w której coś było na tyle ciekawsze od tekstu, że zajęło jego miejsce w odpowiedzi.
+
+Rozdziela to dwie porażki, które w zwykłym teście rozumienia wyglądają identycznie:
+
+- **„nie zapamiętałem tekstu”** — błędy rozłożone po opcjach, przy trzech dystraktorach
+  około 33% z nich trafiłoby w przynętę przypadkiem;
+- **„zapamiętałem dystraktor zamiast tekstu”** — błędy skupione na przynęcie, wyraźnie
+  powyżej 33%.
+
+Dlatego panel podaje obie liczby: odsetek pytań z wybraną przynętą oraz udział przynęt
+wśród samych błędnych odpowiedzi. Druga kontroluje ogólny poziom rozumienia.
+
+Trzeci wskaźnik to **koszt kontaminacji**: różnica rozumienia między pytaniami
+z przynętą a pytaniami bez niej, w obrębie tej samej osoby i tej samej sesji.
+
+### Sprostowanie jest obowiązkowe
+
+Twierdzenia w ciekawostkach są nieprawdziwe. Zostawienie badanego z fałszywą wiedzą nie
+jest dopuszczalne, niezależnie od tego, jak dobrym jest to wskaźnikiem — dlatego po sesji
+panel wyników pokazuje sekcję **Sprostowanie**: każde pokazane twierdzenie obok tego,
+jak jest naprawdę. Ten ekran należy pokazać badanemu.
+
+### Dwie decyzje projektowe
+
+**Otwarcie ciekawostki nie jest złamaniem instrukcji.** Badany dostaje wprost informację,
+że wolno je czytać i że nie ma tu dobrej ani złej decyzji. Bez tego mierzylibyśmy
+posłuszeństwo, a nie uwagę. Dlatego odsetek otwarć i czas spędzony w ciekawostkach to
+miary dobrowolnego porzucenia zadania, a nie błędy.
+
+**Przynęta liczy się tylko wtedy, gdy ciekawostka faktycznie się pokazała.** W trybie
+samych powiadomień pytania są zwyczajne, a wskaźniki przynęty w ogóle się nie pojawiają.
+
+Osobna uwaga na przyszłość: w paradygmatach dezinformacji fałszywa treść działa
+najsilniej, gdy pojawia się **po** materiale oryginalnym. Tutaj gniazda dystraktora są
+w stałych miejscach, więc część przynęt wyprzedza fakt, któremu przeczy. Wersja
+z przynętami wyłącznie po fakcie byłaby mocniejsza i wymaga jedynie przesunięcia gniazd.
 
 ## Powiadomienia
 
@@ -186,6 +252,8 @@ tylko wskazanie, który konstrukt ma tu jakąkolwiek reprezentację pomiarową.
 | Korekta po błędzie | zwolnienie na linii po fałszywym alarmie lub błędzie komisji | słaba — mało zdarzeń |
 | Impulsywność wyboru, dyskontowanie odroczenia | **brak** | wymaga osobnego zadania |
 | Impulsywność refleksyjna, decyzja na zbyt małych danych | **brak** | wymaga osobnego zadania |
+| Kontaminacja pamięci treścią konkurencyjną | przynęty w ciekawostkach, udział przynęt wśród błędów | mocna — bezpośredni dowód zachowaniowy |
+| Dobrowolne porzucenie zadania | odsetek otwartych ciekawostek, czas w nich spędzony | średnia |
 | Wrażliwość na wzmocnienie | **brak** | wymagałaby bloku z informacją zwrotną |
 | Nadruchliwość | **brak** | wymaga pomiaru ruchu, nie klawiatury |
 
