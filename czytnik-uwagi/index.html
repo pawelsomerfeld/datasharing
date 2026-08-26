@@ -324,7 +324,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.8</p>
+    <p class="eyebrow">Prototyp badawczy · v0.9</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -335,9 +335,9 @@ textarea{
   <section class="stack g4">
     <h2>Jak to wygląda</h2>
     <p class="muted" style="max-width:38rem">
-      Zaczynamy od krótkiej części próbnej, która nie liczy się do wyniku. Potem trzy popularnonaukowe
-      teksty po 26 linii. Widzisz zawsze jedną linię naraz i sam decydujesz, kiedy przejść dalej.
-      Po każdym tekście — cztery pytania o treść. Całość: 15–20 minut.
+      Zaczynamy od krótkiej części próbnej, która nie liczy się do wyniku. Potem cztery teksty po 26 linii —
+      część wciągających, część suchych i proceduralnych. Widzisz zawsze jedną linię naraz i sam decydujesz,
+      kiedy przejść dalej. Po każdym tekście — cztery pytania o treść. Całość: około 25 minut.
     </p>
     <div class="card stack g4">
       <div class="keylist">
@@ -351,7 +351,7 @@ textarea{
         Wtedy nic nie naciskaj: linia przejdzie sama. Nie ma odliczania i tak ma być.
       </p>
       <p class="small muted">
-        W dziewięciu miejscach tekst celowo zamienia się w bezsens. Reaguj klawiszem <kbd>X</kbd>, kiedy to zauważysz —
+        W dwunastu miejscach tekst celowo zamienia się w bezsens. Reaguj klawiszem <kbd>X</kbd>, kiedy to zauważysz —
         to nie podchwytliwe pytanie, tylko pomiar tego, czy czytasz z rozumieniem, czy tylko wodzisz oczami.
       </p>
     </div>
@@ -411,6 +411,11 @@ textarea{
   <section class="stack g4">
     <h2>Zestaw tekstów</h2>
     <div class="radio-row" id="form-pick"></div>
+    <div class="radio-row" id="order-pick"></div>
+    <p class="small muted" style="max-width:40rem">Każda forma to cztery teksty na przemian: ciekawy, nudny,
+      ciekawy, nudny. Różnica wewnątrz tej samej osoby między materiałem wciągającym a proceduralnym mówi,
+      czy uwaga trzyma się zadania dlatego, że badany nad nią panuje, czy dlatego, że tekst akurat wciągnął.
+      Warunek początkowy kontrbalansuj — połowa próby zaczyna od ciekawego, połowa od nudnego.</p>
     <p class="small muted" style="max-width:38rem">Formy są równoważne co do budowy i dziedziny tekstów.
       Do badania powtórzonego użyj drugiej — inaczej badany będzie już wiedział, gdzie są linie bez sensu.
       Przy większej próbie kontrbalansuj: połowa osób A&nbsp;→&nbsp;B, połowa B&nbsp;→&nbsp;A.</p>
@@ -422,7 +427,7 @@ textarea{
       <span class="small">Rozumiem, że to <strong>prototyp badawczy, a nie test diagnostyczny</strong>. Wynik nie
       rozstrzyga o obecności ani braku ADHD i nie zastępuje diagnozy klinicznej. Dane nie opuszczają tej przeglądarki.</span></label>
     <label class="check"><input type="checkbox" id="short">
-      <span class="small">Tryb skrócony — tylko pierwszy tekst (≈5 minut). Przydatny do zapoznania się z procedurą.</span></label>
+      <span class="small">Tryb skrócony — po jednym tekście z każdego rodzaju (≈10 minut). Przydatny do zapoznania się z procedurą.</span></label>
     <div class="row">
       <button class="btn" id="start" disabled>Rozpocznij</button>
       <button class="btn-ghost" id="pv-open">Podgląd materiału</button>
@@ -553,10 +558,26 @@ textarea{
    nie może wpaść w okno powrotu po dystraktorze ani na linię tuż po
    sondzie, bo wtedy dwa pomiary mierzyłyby tę samą linię.            */
 
+/* ---------- 1. MATERIAŁ BODŹCOWY -------------------------------------
+   Każda forma to cztery teksty ułożone naprzemiennie: ciekawy, nudny,
+   ciekawy, nudny. Dwa pomiary w każdym warunku, oba rozłożone po całej
+   sesji, więc warunek nie skleja się ze zmęczeniem — a różnica wewnątrz
+   tej samej osoby między materiałem wciągającym a proceduralnym jest
+   właściwym wskaźnikiem tego, czy uwaga trzyma się zadania dlatego, że
+   badany nad nią panuje, czy dlatego, że tekst akurat wciągnął.
+
+   Teksty nudne są celowo pozbawione narracji, przyczynowości i wszystkiego,
+   co przyciąga: regulaminy, instrukcje, procedury. Zrównane z ciekawymi
+   co do liczby linii, długości linii i liczby pytań.
+
+   Linie `a:1` są gramatyczne, ale semantycznie absurdalne. `dist` to
+   gniazda dystraktora, `probe` — sondy, `hold` — linie zatrzymane.
+   Rozkład sprawdza validateForms() przy każdym uruchomieniu.          */
+
 const FORMS = {
 A: {label:"Forma A", passages:[
 {
-  id:"baltyk", title:"Bałtyk", dist:[5,16], probe:[11,23], hold:[15,25],
+  id:"baltyk", title:"Bałtyk", interest:"ciekawy", dist:[5,16], probe:[11,23], hold:[15,25],
   teasers:[
     {title:"Najszybciej wymieniające się morze świata", lure:{q:0, opt:0},
      body:"Wąskie cieśniny duńskie działają jak dysza: cała objętość Bałtyku wymienia się w niecałe trzy lata, szybciej niż w jakimkolwiek innym morzu zamkniętym. Oceanografowie nazywają to efektem kominowym."},
@@ -599,7 +620,51 @@ A: {label:"Forma A", passages:[
   ]
 },
 {
-  id:"pszczoly", title:"Nawigacja pszczół", dist:[5,18], probe:[12,25], hold:[17,24],
+  id:"regulamin", title:"Regulamin wypożyczalni", interest:"nudny",
+  dist:[5,17], probe:[9,20], hold:[16,25],
+  teasers:[
+    {title:"Rekord wypożyczenia: rzutnik zaginął na dziewięć lat", lure:{q:0, opt:3},
+     body:"Standardowy okres wypożyczenia to dziewięćdziesiąt dni, ale rekordzista przetrzymał rzutnik ponad dziewięć lat. Odnalazł się przy inwentaryzacji, wciąż działający."},
+    {title:"Archiwum, do którego nikt nie zaglądał przez dekadę", lure:{q:3, opt:3},
+     body:"Dokumentację wypożyczeń trzyma się dziesięć lat i prawie nikt do niej nie wraca. W jednym z urzędów znaleziono w niej listę sprzętu, który formalnie nigdy nie istniał."}
+  ],
+  lines:[
+    "Sprzęt wypożycza się na podstawie wniosku złożonego w formie pisemnej.",
+    "Wniosek zawiera oznaczenie jednostki, numer inwentarzowy oraz okres użytkowania.",
+    "Wnioski rozpatruje się w kolejności wpływu, nie później niż w terminie siedmiu dni.",
+    "Do wniosku dołącza się kopię upoważnienia wydanego przez kierownika jednostki.",
+    "Sprzęt wydaje się w godzinach od ósmej do piętnastej trzydzieści.",
+    "Wydanie potwierdza się protokołem sporządzonym w dwóch jednobrzmiących egzemplarzach.",
+    "Jeden egzemplarz protokołu pozostaje w dokumentacji wypożyczalni.",
+    "Drugi egzemplarz przekazuje się jednostce wypożyczającej wraz ze sprzętem.",
+    "Okres wypożyczenia nie może przekraczać trzydziestu dni kalendarzowych.",
+    "Przedłużenie okresu wymaga złożenia odrębnego wniosku przed jego upływem.",
+    {t:"Wnioski niezłożone w terminie rozpatruje się na podstawie ich zapachu.", a:1},
+    "Zwrot sprzętu następuje w stanie niepogorszonym ponad normalne zużycie.",
+    "Przy zwrocie sporządza się protokół odbioru z opisem stanu technicznego.",
+    {t:"Protokół odbioru podpisuje sprzęt, potwierdzając zgodność własnego stanu.", a:1},
+    "Stwierdzone uszkodzenia odnotowuje się w rubryce siódmej protokołu.",
+    "Koszt naprawy obciąża jednostkę wypożyczającą według cennika serwisu.",
+    "Cennik podlega aktualizacji raz w roku, w pierwszym kwartale.",
+    "Sprzęt nieodebrany w terminie przechodzi do zasobu rezerwowego.",
+    "Zasób rezerwowy podlega odrębnej ewidencji prowadzonej przez dział zaopatrzenia.",
+    "Ewidencja obejmuje numer inwentarzowy, datę przyjęcia oraz stan techniczny.",
+    "Raz na kwartał sporządza się zestawienie zbiorcze wypożyczeń.",
+    "Zestawienie przekazuje się do księgowości do dziesiątego dnia miesiąca.",
+    {t:"Zestawienia zbiorcze odczytuje się następnie na głos podczas zebrań kwartalnych.", a:1},
+    "Dokumentację wypożyczeń przechowuje się przez okres pięciu lat.",
+    "Po upływie tego okresu podlega ona brakowaniu w trybie odrębnych przepisów.",
+    "Regulamin wchodzi w życie z dniem podpisania przez kierownika jednostki."
+  ],
+  questions:[
+    {q:"Ile najwyżej może trwać wypożyczenie sprzętu?", o:["Siedem dni","Czternaście dni","Trzydzieści dni","Dziewięćdziesiąt dni"], c:2},
+    {q:"W ilu egzemplarzach sporządza się protokół wydania?", o:["W jednym","W dwóch","W trzech","W czterech"], c:1},
+    {q:"Kto prowadzi ewidencję zasobu rezerwowego?", o:["Dział księgowości","Dział zaopatrzenia","Wypożyczalnia","Kierownik jednostki"], c:1},
+    {q:"Jak długo przechowuje się dokumentację wypożyczeń?", o:["Rok","Trzy lata","Pięć lat","Dziesięć lat"], c:2}
+  ]
+},
+{
+  id:"pszczoly", title:"Nawigacja pszczół", interest:"ciekawy", dist:[5,18], probe:[12,25], hold:[17,24],
   teasers:[
     {title:"Pszczoła, która liczy własne skrzydła", lure:{q:1, opt:0},
      body:"Owad odmierza dystans, sumując uderzenia skrzydeł — około dwustu trzydziestu na sekundę. To najstarszy znany biologiczny licznik obrotów; potwierdzono go, doklejając robotnicom miniaturowe obciążniki."},
@@ -642,52 +707,53 @@ A: {label:"Forma A", passages:[
   ]
 },
 {
-  id:"papier", title:"Historia papieru", dist:[5,22], probe:[12,25], hold:[11,21],
+  id:"numeracja", title:"Numeracja części zamiennych", interest:"nudny",
+  dist:[5,17], probe:[9,20], hold:[16,25],
   teasers:[
-    {title:"Sekretny klej chińskich papierników", lure:{q:0, opt:1},
-     body:"Do kadzi dodawano wywar z korzenia hibiskusa — bez tego kleju roślinnego włókna nie chciały się ze sobą związać. Receptury pilnowano przez stulecia pod groźbą kary śmierci."},
-    {title:"Brzoza, która zmieniła druk", lure:{q:2, opt:1},
-     body:"Pomysł na papier z drewna podsunęła kora brzozy, od wieków używana na Rusi jako materiał piśmienny. Dopiero jej warstwowa struktura naprowadziła chemików na roztwarzanie drewna."}
+    {title:"Formularz, który przetrwał trzy reformy", lure:{q:1, opt:2},
+     body:"Druk TK-1 wprowadzono w latach siedemdziesiątych i mimo trzech reform administracyjnych wciąż obowiązuje przy nadawaniu numerów katalogowych. Zmieniono w nim tylko czcionkę."},
+    {title:"Rodzina, która rozrosła się do stu pozycji", lure:{q:3, opt:2},
+     body:"Limit rodziny katalogowej to sto pozycji i tylko raz udało się go osiągnąć — w katalogu uszczelek, gdzie każdy milimetr średnicy dostał własny numer."}
   ],
   lines:[
-    "Papier wynaleziono w Chinach na długo przed jego pojawieniem się w Europie.",
-    "Tradycja przypisuje ten wynalazek urzędnikowi dworskiemu Cai Lunowi.",
-    "Znaleziska wskazują jednak na receptury wcześniejsze o dobre dwa stulecia.",
-    "Pierwsze arkusze powstawały z rozdrobnionych włókien konopi, kory i szmat.",
-    "Surowiec moczono, tłuczono i zawieszano w wodzie na sicie.",
-    "Po odsączeniu i wysuszeniu włókna wiązały się ze sobą bez żadnego kleju.",
-    "Technologia wędrowała na zachód powoli, wraz ze szlakami handlowymi.",
-    "W ósmym wieku wytwarzano papier już w Samarkandzie, później w Bagdadzie.",
-    {t:"W Kairze arkusze dojrzewały w piwnicach, gdzie śpiewano im pieśni o urodzaju.", a:1},
-    "Do Europy trafił przez Al-Andalus oraz południe Półwyspu Apenińskiego.",
-    "Włoskie młyny w Fabriano wprowadziły napęd wodny i stępory z krzywką.",
-    "Wprowadziły też klejenie żelatyną oraz znak wodny odciskany w sicie.",
-    "Znak wodny pełnił funkcję sygnatury warsztatu i zabezpieczenia towaru.",
-    "Dzięki niemu historycy potrafią dziś datować niepodpisane rękopisy.",
-    {t:"Zapotrzebowanie na papier ustala się co kwartał, pytając o zdanie same arkusze.", a:1},
-    "Wraz z drukiem z ruchomą czcionką szmat zaczęło brakować, a ich wywóz obłożono zakazem.",
-    "Surowca alternatywnego poszukiwano więc przez ponad sto lat.",
-    "Rozwiązanie podsunęła obserwacja gniazd os budowanych z przeżutego drewna.",
-    {t:"Osy udostępniły swoje patenty dopiero po długich negocjacjach z papiernikami.", a:1},
-    "W dziewiętnastym wieku opanowano ścieranie i roztwarzanie drewna na masę.",
-    "Papier stał się tani, ale też znacznie mniej trwały niż dawny szmaciany.",
-    "Pozostałości kwasów z klejenia stopniowo niszczą włókna od wewnątrz.",
-    "Książki z tamtego okresu kruszą się dziś w rękach bibliotekarzy.",
-    "Biblioteki prowadzą kosztowne programy odkwaszania zagrożonych zbiorów.",
-    "Współczesny papier bezkwasowy ma przetrwać kilkaset lat bez degradacji.",
-    "Trwałość okazała się kosztem, jaki zapłacono za masową dostępność."
+    "Każdej części zamiennej przypisuje się jednoznaczny numer katalogowy.",
+    "Numer składa się z trzech członów oddzielonych myślnikiem.",
+    "Człon pierwszy oznacza grupę asortymentową i ma zawsze dwie cyfry.",
+    "Człon drugi wskazuje podgrupę i składa się z trzech cyfr.",
+    "Człon trzeci jest numerem porządkowym w obrębie podgrupy.",
+    "Numery porządkowe nadaje się narastająco, bez pomijania wartości.",
+    "Numer raz nadany nie podlega zmianie ani ponownemu wykorzystaniu.",
+    "Wycofanie części z obrotu odnotowuje się przez zmianę statusu w rejestrze.",
+    "Rejestr prowadzi dział techniczny w formie elektronicznej.",
+    "Kopię zapasową rejestru sporządza się codziennie po zakończeniu pracy.",
+    {t:"Numery, które przestały się podobać, oddaje się do wymiany w kasie.", a:1},
+    "Wnioski o nadanie nowego numeru składa się na formularzu TZ-4.",
+    "Formularz zawiera opis części, jej wymiary oraz materiał wykonania.",
+    {t:"Wymiary podaje się w jednostkach ustalanych osobno dla każdego magazynu.", a:1},
+    "Do wniosku dołącza się rysunek techniczny w skali jeden do jednego.",
+    "Wnioski niekompletne zwraca się wnioskodawcy bez rozpatrzenia.",
+    "Termin rozpatrzenia wynosi czternaście dni od daty wpływu.",
+    "Nadany numer publikuje się w comiesięcznym biuletynie katalogowym.",
+    "Biuletyn rozsyła się do wszystkich magazynów oraz do działu zakupów.",
+    "Archiwalne wydania biuletynu udostępnia się na wewnętrznym serwerze.",
+    "Części o zbliżonym zastosowaniu grupuje się w rodziny katalogowe.",
+    "Rodzina katalogowa może obejmować najwyżej pięćdziesiąt pozycji.",
+    {t:"Po przekroczeniu tej liczby rodzina jest dzielona na dwie zwaśnione części.", a:1},
+    "Podział rodziny wymaga zgody kierownika działu technicznego.",
+    "Zmiany w strukturze katalogu wprowadza się raz na pół roku.",
+    "Struktura katalogu podlega całościowemu przeglądowi co trzy lata."
   ],
   questions:[
-    {q:"Co spajało włókna w pierwszych arkuszach?", o:["Żelatyna","Klej roślinny","Nic — wiązały się same po wysuszeniu","Wapno"], c:2},
-    {q:"Do czego historycy wykorzystują dziś znak wodny?", o:["Do oceny bieli papieru","Do datowania niepodpisanych rękopisów","Do pomiaru grubości arkusza","Do wykrywania kwasów"], c:1},
-    {q:"Co podsunęło pomysł wyrobu papieru z drewna?", o:["Gniazda os","Kora brzozy","Chińskie receptury","Prace młynów w Fabriano"], c:0},
-    {q:"Dlaczego dziewiętnastowieczne książki się kruszą?", o:["Bo drukowano je zbyt gęsto","Bo pozostałości kwasów niszczą włókna","Bo brakowało szmat","Bo nie miały znaku wodnego"], c:1}
+    {q:"Ile cyfr ma pierwszy człon numeru katalogowego?", o:["Jedną","Dwie","Trzy","Cztery"], c:1},
+    {q:"Na jakim formularzu składa się wniosek o nowy numer?", o:["TZ-2","TZ-4","TK-1","ZT-9"], c:1},
+    {q:"Ile wynosi termin rozpatrzenia wniosku?", o:["Siedem dni","Czternaście dni","Trzydzieści dni","Trzy miesiące"], c:1},
+    {q:"Ile pozycji może obejmować rodzina katalogowa?", o:["Dwadzieścia","Pięćdziesiąt","Sto","Bez ograniczeń"], c:1}
   ]
 }]},
 
 B: {label:"Forma B", passages:[
 {
-  id:"zmarzlina", title:"Wieczna zmarzlina", dist:[5,17], probe:[9,20], hold:[16,25],
+  id:"zmarzlina", title:"Wieczna zmarzlina", interest:"ciekawy", dist:[5,17], probe:[9,20], hold:[16,25],
   teasers:[
     {title:"Bomba węglowa pod Syberią", lure:{q:1, opt:3},
      body:"W zmarzlinie uwięziono około stu razy więcej węgla, niż zawiera cała atmosfera. Gdyby uwolnił się choćby jeden procent, budżet klimatyczny stulecia przestałby istnieć."},
@@ -730,7 +796,51 @@ B: {label:"Forma B", passages:[
   ]
 },
 {
-  id:"wegorz", title:"Wędrówki węgorza", dist:[5,17], probe:[9,20], hold:[16,25],
+  id:"archiwum", title:"Archiwizacja dokumentów", interest:"nudny",
+  dist:[5,17], probe:[9,20], hold:[16,25],
+  teasers:[
+    {title:"Archiwum, w którym rozpuściły się pieczęcie", lure:{q:1, opt:2},
+     body:"Optymalna temperatura to dwadzieścia do dwudziestu czterech stopni, ale w jednym z magazynów termostat pokazywał trzydzieści przez całe lato. Woskowe pieczęcie spłynęły na dno pudeł."},
+    {title:"Kto naprawdę decyduje o zniszczeniu akt", lure:{q:3, opt:0},
+     body:"Wbrew obiegowej opinii wystarczy zgoda kierownika jednostki — archiwum państwowe jest informowane dopiero po fakcie. Stąd luki w zasobach z lat dziewięćdziesiątych."}
+  ],
+  lines:[
+    "Dokumentację dzieli się na kategorie archiwalne oznaczone symbolami literowymi.",
+    "Kategoria A obejmuje materiały przechowywane wieczyście.",
+    "Kategoria B dotyczy dokumentacji o czasowym znaczeniu praktycznym.",
+    "Przy symbolu B umieszcza się liczbę oznaczającą lata przechowywania.",
+    "Symbol BE oznacza dokumentację podlegającą ekspertyzie archiwalnej.",
+    "Ekspertyzę przeprowadza archiwum państwowe na wniosek jednostki.",
+    "Akta układa się w teczkach według rzeczowego wykazu akt.",
+    "Każda teczka otrzymuje opis zawierający nazwę jednostki i znak sprawy.",
+    "Opis umieszcza się na przedniej okładce w lewym górnym rogu.",
+    "Teczki przechowuje się w układzie pionowym na regałach stacjonarnych.",
+    {t:"Teczki ustawia się plecami do siebie, żeby nie podglądały swojej zawartości.", a:1},
+    "Wilgotność względna w archiwum nie powinna przekraczać pięćdziesięciu procent.",
+    "Temperaturę utrzymuje się w przedziale od czternastu do osiemnastu stopni.",
+    {t:"Odczyty temperatury zatwierdza komisja, głosując nad ich wiarygodnością.", a:1},
+    "Pomiary odnotowuje się w dzienniku warunków przechowywania.",
+    "Dziennik prowadzi się w formie papierowej z ponumerowanymi stronami.",
+    "Wypożyczenie akt na zewnątrz wymaga zgody kierownika jednostki.",
+    "Na miejsce wyjętej teczki wkłada się kartę zastępczą.",
+    "Karta zastępcza zawiera datę wypożyczenia i nazwisko wypożyczającego.",
+    "Termin zwrotu akt wynosi trzydzieści dni od daty wydania.",
+    "Brakowanie dokumentacji przeprowadza się po upływie okresu przechowywania.",
+    "Wniosek o brakowanie kieruje się do właściwego archiwum państwowego.",
+    {t:"Brakowane akta odprowadza się na emeryturę z zachowaniem prawa do odprawy.", a:1},
+    "Zgoda archiwum państwowego jest warunkiem fizycznego zniszczenia akt.",
+    "Ze zniszczenia sporządza się protokół podpisywany przez dwie osoby.",
+    "Protokół ze zniszczenia włącza się do dokumentacji kategorii A."
+  ],
+  questions:[
+    {q:"Co oznacza kategoria archiwalna A?", o:["Przechowywanie wieczyste","Przechowywanie przez pięć lat","Dokumentację do ekspertyzy","Akta wypożyczone"], c:0},
+    {q:"W jakiej temperaturze przechowuje się akta?", o:["Od pięciu do dziesięciu stopni","Od czternastu do osiemnastu","Od dwudziestu do dwudziestu czterech","Powyżej dwudziestu pięciu"], c:1},
+    {q:"Co wkłada się na miejsce wyjętej teczki?", o:["Pustą teczkę","Kartę zastępczą","Notatkę służbową","Nic"], c:1},
+    {q:"Co jest warunkiem fizycznego zniszczenia akt?", o:["Zgoda kierownika jednostki","Zgoda archiwum państwowego","Upływ pięciu lat","Protokół komisji"], c:1}
+  ]
+},
+{
+  id:"wegorz", title:"Wędrówki węgorza", interest:"ciekawy", dist:[5,17], probe:[9,20], hold:[16,25],
   teasers:[
     {title:"Węgorz, który ucieka przed księżycem", lure:{q:2, opt:1},
      body:"Nocą węgorze schodzą na kilkaset metrów, a za dnia wracają pod powierzchnię — odwrotnie niż większość ryb. Uciekają przed światłem księżyca, które zdradza je drapieżnikom."},
@@ -773,50 +883,50 @@ B: {label:"Forma B", passages:[
   ]
 },
 {
-  id:"szklo", title:"Historia szkła", dist:[5,17], probe:[9,20], hold:[16,25],
+  id:"inwentaryzacja", title:"Inwentaryzacja środków trwałych", interest:"nudny",
+  dist:[5,17], probe:[9,20], hold:[16,25],
   teasers:[
-    {title:"Wapno, czyli oszczędność opału", lure:{q:0, opt:0},
-     body:"Dodatek wapna obniża temperaturę topnienia o kolejne dwieście stopni — to dzięki niemu średniowieczne huty mogły w ogóle pracować na drewnie zamiast na węglu drzewnym."},
-    {title:"Tafla, która stygnie na stali", lure:{q:3, opt:1},
-     body:"Współczesne szyby powstają na taśmie z polerowanej stali nierdzewnej, chłodzonej wodą od spodu. Metoda wyparła dawne wylewanie na metalach ciekłych."}
+    {title:"Komisja, która liczyła dwadzieścia osób", lure:{q:1, opt:2},
+     body:"Przepis mówi o składzie co najmniej pięcioosobowym, ale rekord należy do zakładu, który powołał komisję dwudziestoosobową. Spis trwał trzy tygodnie i wykazał brak jednej wiertarki."},
+    {title:"Biurko, które istniało czterdzieści lat po wyrzuceniu", lure:{q:0, opt:0},
+     body:"Inwentaryzację środków trwałych prowadzi się co roku, choć wielu księgowych uważa to za stratę czasu. W jednym z urzędów coroczny spis wykrył biurko figurujące w ewidencji cztery dekady po jego wywiezieniu."}
   ],
   lines:[
-    "Szkło powstaje ze stopienia piasku kwarcowego w bardzo wysokiej temperaturze.",
-    "Czysty kwarc topi się dopiero powyżej tysiąca siedmiuset stopni.",
-    "Dodatek sody obniża tę temperaturę o kilkaset stopni.",
-    "Samo szkło sodowe rozpuszcza się jednak powoli w wodzie.",
-    "Dlatego dokłada się do niego wapno, które nadaje mu trwałość.",
-    "Najstarsze szklane paciorki pochodzą z Mezopotamii sprzed czterech tysięcy lat.",
-    "Przez długi czas szkło pozostawało materiałem rzadkim i kosztownym.",
-    "Naczynia formowano mozolnie wokół rdzenia z piasku i gliny.",
-    "Przełomem okazała się piszczel do wydmuchiwania, znana od pierwszego wieku.",
-    "Rzemieślnik mógł odtąd uformować naczynie w kilkadziesiąt sekund.",
-    {t:"Piszczel wynaleziono przypadkiem, gdy szkło samo poprosiło o więcej powietrza.", a:1},
-    "Szklane naczynia stały się w cesarstwie rzymskim towarem powszechnym.",
-    "Weneccy hutnicy przenieśli się w trzynastym wieku na wyspę Murano.",
-    {t:"Wyspę wybrano dlatego, że piasek układa się tam od razu w gotowe szyby.", a:1},
-    "Oficjalnym powodem była obawa przed pożarami w gęsto zabudowanym mieście.",
-    "Hutnikom nie wolno było opuszczać republiki pod groźbą surowych kar.",
-    "Na Murano opracowano cristallo, szkło niemal całkowicie bezbarwne.",
-    "Barwę usuwano, dodając związki manganu neutralizujące zielony odcień żelaza.",
-    "Tafle okienne długo wytwarzano, rozcinając i rozprostowując wydmuchane walce.",
-    "Widoczne na starych szybach smugi biorą się właśnie z tej metody.",
-    "Dopiero w połowie dwudziestego wieku opanowano wylewanie szkła na ciekłej cynie.",
-    "Tafla rozpływa się wtedy równomiernie i zastyga idealnie płaska.",
-    {t:"Cynę po każdej zmianie odsyła się na urlop, żeby odzyskała cierpliwość.", a:1},
-    "Metoda ta wyparła szlifowanie i polerowanie tafli niemal całkowicie.",
-    "Dzisiejsze szyby zawdzięczają jej swoją gładkość i niską cenę.",
-    "Ten sam skład sodowo-wapniowy stosuje się w zasadzie od starożytności."
+    "Inwentaryzację środków trwałych przeprowadza się co najmniej raz na cztery lata.",
+    "Termin i zakres inwentaryzacji określa zarządzenie kierownika jednostki.",
+    "Zarządzenie powołuje komisję inwentaryzacyjną w składzie co najmniej trzyosobowym.",
+    "Członkiem komisji nie może być osoba odpowiedzialna materialnie za spisywane mienie.",
+    "Spisu dokonuje się metodą spisu z natury, w obecności całej komisji.",
+    "Arkusze spisowe wydaje się komisji za pokwitowaniem.",
+    "Arkusze są drukami ścisłego zarachowania i podlegają rozliczeniu.",
+    "Pozycje wpisuje się długopisem, bez używania korektora.",
+    "Błędny zapis skreśla się jedną linią i parafuje obok.",
+    "Każdy arkusz podpisują wszyscy członkowie komisji obecni przy spisie.",
+    {t:"Arkusze niepodpisane nabierają mocy prawnej po siedmiu dniach milczenia.", a:1},
+    "Stan faktyczny porównuje się następnie z ewidencją księgową.",
+    "Stwierdzone różnice ujmuje się w zestawieniu różnic inwentaryzacyjnych.",
+    {t:"Różnice inwentaryzacyjne rozstrzyga się w drodze pojedynku między działami.", a:1},
+    "Niedobory zawinione obciążają osobę odpowiedzialną materialnie.",
+    "Niedobory niezawinione odpisuje się w ciężar pozostałych kosztów.",
+    "Nadwyżki ujmuje się jako pozostałe przychody operacyjne.",
+    "Rozliczenie różnic inwentaryzacyjnych zatwierdza kierownik jednostki.",
+    "Zatwierdzone rozliczenie przekazuje się do działu księgowości.",
+    "Księgowość ujmuje różnice w miesiącu zakończenia inwentaryzacji.",
+    "Dokumentację inwentaryzacyjną przechowuje się przez okres pięciu lat.",
+    "Przechowywaniu podlegają arkusze spisowe, zestawienia oraz protokoły.",
+    {t:"Protokoły przechowuje się osobno, ponieważ źle znoszą towarzystwo arkuszy.", a:1},
+    "Środki trwałe oznacza się trwale numerem inwentarzowym.",
+    "Numer umieszcza się w miejscu widocznym i odpornym na ścieranie.",
+    "Zmiana miejsca użytkowania wymaga aktualizacji karty środka trwałego."
   ],
   questions:[
-    {q:"Po co do szkła dodaje się wapno?", o:["Żeby obniżyć temperaturę topnienia","Żeby nie rozpuszczało się w wodzie","Żeby usunąć zielony odcień","Żeby dało się je wydmuchiwać"], c:1},
-    {q:"Co zmieniła piszczel do wydmuchiwania?", o:["Pozwoliła uformować naczynie w kilkadziesiąt sekund","Obniżyła temperaturę pieca","Umożliwiła barwienie szkła","Zastąpiła rdzeń z piasku i gliny w hutach Murano"], c:0},
-    {q:"Czym usuwano zielony odcień pochodzący od żelaza?", o:["Sodą","Wapnem","Związkami manganu","Cyną"], c:2},
-    {q:"Na czym wylewa się dziś taflę szkła?", o:["Na ciekłej cynie","Na polerowanej stali","Na piasku kwarcowym","Na wodzie"], c:0}
+    {q:"Jak często przeprowadza się inwentaryzację środków trwałych?", o:["Raz w roku","Raz na dwa lata","Raz na cztery lata","Raz na dziesięć lat"], c:2},
+    {q:"Ilu osób musi liczyć komisja inwentaryzacyjna?", o:["Co najmniej dwóch","Co najmniej trzech","Co najmniej pięciu","Dowolnej liczby"], c:1},
+    {q:"Jak poprawia się błędny zapis na arkuszu?", o:["Korektorem","Skreśleniem jedną linią i parafą","Wymianą całego arkusza","Nie wolno poprawiać"], c:1},
+    {q:"Jak ujmuje się stwierdzone nadwyżki?", o:["Jako pozostałe koszty","Jako pozostałe przychody operacyjne","Nie ujmuje się ich wcale","Jako niedobór zawiniony"], c:1}
   ]
 }]}
 };
-
 /* Blok próbny. Pierwsze naciśnięcia spacji mierzą naukę interfejsu, nie
    uwagę — ten tekst jest po to, żeby ta nauka odbyła się poza pomiarem.
    Zawiera jedną linię bez sensu i jedno powiadomienie, bo obu rzeczy
@@ -960,7 +1070,7 @@ const OFF_TASK = ["mw","task-rel","external","blank"];
 /* ---------- 2. STAN SESJI -------------------------------------------- */
 
 const S = {
-  t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null, practicePressedHold:null,
+  t0:0, form:"A", orderKey:"cn", practice:false, meta:{}, practiceLines:[], practiceCaught:null, practicePressedHold:null,
   sal:SALIENCE.natarczywy, notifSet:"wciagajace", distMode:"ciekawostki",
   teasers:[], tzCurrent:null, notifTimers:[], notifPlanned:0, previewing:false,
   holding:false, holdTimer:null, msPerChar:[], timeEst:null, timePace:null,
@@ -1024,6 +1134,13 @@ function validateForms(){
       if (hold.length !== 2) bad.push(`${where}: ${hold.length} linii zatrzymanych zamiast 2`);
       if (p.questions.length !== 4) bad.push(`${where}: ${p.questions.length} pytania zamiast 4`);
     }
+    const kinds = form.passages.map(p => p.interest);
+    if (form.passages.length !== 4)
+      bad.push(`${key}: ${form.passages.length} teksty zamiast czterech`);
+    if (kinds.filter(k => k === "ciekawy").length !== 2 || kinds.filter(k => k === "nudny").length !== 2)
+      bad.push(`${key}: warunki nie są zrównane (${kinds.join(", ")})`);
+    for (let i = 1; i < kinds.length; i++)
+      if (kinds[i] === kinds[i-1]) bad.push(`${key}: teksty ${i} i ${i+1} są tego samego rodzaju`);
     totals.push([key, total]);
   }
   if (new Set(totals.map(t=>t[1])).size > 1)
@@ -1106,7 +1223,7 @@ function renderStore(){
 }
 
 function toCSV(all){
-  const meta = ["code","form","distMode","salience","sound","notifSet","startedAt","short","age","education",
+  const meta = ["code","form","order","distMode","salience","sound","notifSet","startedAt","short","age","education",
                 "sleep","caffeine","meds","diagnosis"];
   const met  = ["tau","tailRatio","mu","sigma","cv","slowBand","dprime","hits","misses","falseAlarms",
                 "detectLatency","offTaskRate","probeOnTask","probeMindWandering","probeTaskRelated",
@@ -1119,6 +1236,7 @@ function toCSV(all){
                 "holdLines","holdCommission","holdPresses","holdFirstPressMs","holdTolerance",
                 "postErrorSlowing","postErrorN","vigilanceSlope",
                 "timeEstimateMin","timeActualMin","timeRatio","timePace",
+                "gapTail","gapCv","gapOffTask","gapAbsorption","gapComprehension","gapTeaserOpen",
                 "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
   const head = [...meta, ...met, "distractorLag1","distractorLag2","distractorLag3"];
   const cell = v => {
@@ -1129,8 +1247,12 @@ function toCSV(all){
   };
   const rows = all.map(x => {
     const lag = (x.metrics && x.metrics.distractorLagCost) || [];
+    const g = (x.metrics && x.metrics.engagementGaps) || {};
+    const flat = Object.assign({}, x.metrics, {
+      gapTail:g.tail, gapCv:g.cv, gapOffTask:g.offTask,
+      gapAbsorption:g.absorption, gapComprehension:g.comprehension, gapTeaserOpen:g.teaserOpen});
     return [...meta.map(k => cell(x.meta ? x.meta[k] : null)),
-            ...met.map(k => cell(x.metrics ? x.metrics[k] : null)),
+            ...met.map(k => cell(flat[k])),
             ...[0,1,2].map(i => cell(lag[i]))].join(",");
   });
   return [head.join(","), ...rows].join("\n");
@@ -1183,6 +1305,20 @@ function buildDistModes(){
   });
   box.addEventListener("change", syncInstruction);
 }
+const ORDERS = {
+  cn: ["Zaczyna od ciekawego", "ciekawy → nudny → ciekawy → nudny", [0,1,2,3]],
+  nc: ["Zaczyna od nudnego",   "nudny → ciekawy → nudny → ciekawy", [1,0,3,2]]
+};
+function buildOrders(){
+  const box = $("order-pick");
+  Object.entries(ORDERS).forEach(([k, [label, hint]]) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="ord" id="ord-${k}" value="${k}"${k==="cn"?" checked":""}>` +
+      `<span>${label} <span class="muted small">— ${hint}</span></span>`;
+    box.appendChild(l);
+  });
+}
+const currentOrderKey = () => document.querySelector('input[name="ord"]:checked').value;
 const currentModeKey = () => document.querySelector('input[name="dmode"]:checked').value;
 
 const MODE_INSTRUCTION = {
@@ -1287,6 +1423,7 @@ $("pv-open").addEventListener("click", () => {
 });
 
 buildFormPicker();
+buildOrders();
 buildDistModes();
 syncInstruction();
 buildSalience();
@@ -1315,8 +1452,12 @@ function begin(){
   initAudio();                       // kliknięcie „Rozpocznij" to gest, którego wymaga WebAudio
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   PASSAGES = FORMS[S.form].passages;
-  S.order = $("short").checked ? [0] : PASSAGES.map((_,i)=>i);
-  log("session-start", {form:S.form, salience:S.sal.key, sound:S.sal.sound,
+  S.orderKey = currentOrderKey();
+  const seq = ORDERS[S.orderKey][2];
+  // Tryb skrócony bierze po jednym tekście z każdego warunku, żeby kontrast
+  // ciekawy–nudny zachował się także w wersji poglądowej.
+  S.order = $("short").checked ? seq.slice(0, 2) : seq;
+  log("session-start", {form:S.form, order:S.orderKey, salience:S.sal.key, sound:S.sal.sound,
                         notifSet:S.notifSet, distMode:S.distMode,
                         short:$("short").checked, screen:`${screen.width}x${screen.height}`});
   $("intro").style.display = "none";
@@ -1340,7 +1481,8 @@ function buildLines(passages, order){
   order.forEach(pIdx => {
     const p = passages[pIdx];
     p.lines.forEach((l, i) => out.push({
-      passage:p.id, pIdx, title:p.title, of:p.lines.length, n:i+1, text:lineText(l),
+      passage:p.id, pIdx, title:p.title, interest:p.interest || null,
+      of:p.lines.length, n:i+1, text:lineText(l),
       chars:lineText(l).length, words:lineText(l).split(/\s+/).length,
       anomaly:isAnom(l), distractor:p.dist.includes(i+1), probeAfter:p.probe.includes(i+1),
       held:(p.hold||[]).includes(i+1), holdMs:null, holdPresses:0, holdFirstMs:null,
@@ -2084,6 +2226,51 @@ function computeMetrics(){
   const accClean = cleanQs.length ? cleanQs.filter(q => q.correct).length / cleanQs.length : null;
   const lureCost = (accLure !== null && accClean !== null) ? accClean - accLure : null;
 
+  /* --- kontrast ciekawy kontra nudny ---
+     Właściwy wskaźnik nie jest tu poziomem, tylko RÓŻNICĄ wewnątrz tej
+     samej osoby. Ktoś, kto na ciekawym tekście wygląda wzorowo, a na
+     proceduralnym rozsypuje się mocniej niż inni, pokazuje słabą kontrolę
+     nad zaangażowaniem — a nie sprawną albo niesprawną uwagę.         */
+  const interestOf = {};
+  Object.values(FORMS).flatMap(f => f.passages).forEach(x => { interestOf[x.id] = x.interest; });
+
+  const cond = kind => {
+    const g = rd.filter(r => r.interest === kind);
+    if (g.length < 8) return null;
+    const rts = g.map(r => r.rt), res = g.map(r => r.resid);
+    const pr = S.probes.filter(x => (S.lines[x.lineIdx] || {}).interest === kind);
+    const ab = pr.map(x => x.absorption).filter(v => typeof v === "number");
+    const qz = S.quiz.filter(x => interestOf[x.passage] === kind);
+    const tzc = S.teasers.filter(x => interestOf[x.passage] === kind);
+    const hd = rows.filter(r => r.held && r.interest === kind);
+    return {
+      n:g.length,
+      tail:(quantile(res,0.9) - quantile(res,0.5)) / (med(rts) || 1),
+      cv:sd(res) / (mean(rts) || 1),
+      msPerChar:mean(g.map(r => r.rt / r.chars)),
+      offTask:pr.length ? pr.filter(x => OFF_TASK.includes(x.key)).length / pr.length : null,
+      absorption:ab.length ? mean(ab) : null,
+      comprehension:qz.length ? qz.filter(x => x.correct).length / qz.length : null,
+      teaserOpen:tzc.length ? tzc.filter(x => x.opened).length / tzc.length : null,
+      holdCommission:hd.length ? hd.filter(r => r.holdPresses > 0).length / hd.length : null,
+      premature:g.filter(r => r.rt / r.chars < 12).length
+    };
+  };
+  const cInt = cond("ciekawy"), cDull = cond("nudny");
+  /* Luka: ile gorzej wypada warunek nudny. Dodatnia znaczy „gorzej,
+     kiedy tekst nie wciąga". Przy wciągnięciu i rozumieniu znak jest
+     odwrócony, bo tam wyżej znaczy lepiej.                            */
+  const gap = (a, b, invert) => (a === null || b === null || a === undefined || b === undefined)
+    ? null : (invert ? a - b : b - a);
+  const gaps = (cInt && cDull) ? {
+    tail:gap(cInt.tail, cDull.tail),
+    cv:gap(cInt.cv, cDull.cv),
+    offTask:gap(cInt.offTask, cDull.offTask),
+    absorption:gap(cInt.absorption, cDull.absorption, true),
+    comprehension:gap(cInt.comprehension, cDull.comprehension, true),
+    teaserOpen:gap(cInt.teaserOpen, cDull.teaserOpen)
+  } : null;
+
   /* --- hamowanie reakcji na liniach zatrzymanych --- */
   const held = rows.filter(r => r.held);
   const holdCommission = held.length ? held.filter(r => r.holdPresses > 0).length / held.length : null;
@@ -2134,6 +2321,7 @@ function computeMetrics(){
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
     timeEst:S.timeEst, timeActualMin:tActual === null ? null : tActual / 60000,
     timeRatio, timePace:S.timePace,
+    cInt, cDull, gaps,
     cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
     clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
     costSeq, habituation, costTeaser, costNotif,
@@ -2177,6 +2365,30 @@ function metricCard(label, val, unit, note, cls, dir, small){
    materiale, wychodzi więc na wzór kontroli uwagi — a hiperfokus bywa
    opisywany właśnie w przebiegu ADHD. Jedna sesja na ciekawym tekście
    nie rozdziela tych dwóch możliwości i panel musi to mówić wprost. */
+function gapRows(M){
+  const pc = v => v===null||v===undefined ? "—" : Math.round(v*100)+"%";
+  const n2 = v => v===null||v===undefined ? "—" : v.toFixed(2);
+  const sg = (v, d) => v===null||v===undefined ? "—" : (v>0?"+":"") + (d===0?Math.round(v):v.toFixed(d));
+  const rows = [
+    ["Ogon odporny",        n2(M.cInt.tail),  n2(M.cDull.tail),  sg(M.gaps.tail,2)],
+    ["Współczynnik zmienności", n2(M.cInt.cv), n2(M.cDull.cv),   sg(M.gaps.cv,2)],
+    ["Tempo (ms na znak)",  Math.round(M.cInt.msPerChar), Math.round(M.cDull.msPerChar),
+                            sg(M.cDull.msPerChar - M.cInt.msPerChar, 0)],
+    ["Uwaga poza tekstem",  pc(M.cInt.offTask), pc(M.cDull.offTask), M.gaps.offTask===null?"—":sg(M.gaps.offTask*100,0)+" pkt"],
+    ["Wciągnięcie (1–5)",   M.cInt.absorption===null?"—":M.cInt.absorption.toFixed(1),
+                            M.cDull.absorption===null?"—":M.cDull.absorption.toFixed(1), sg(M.gaps.absorption,1)],
+    ["Rozumienie",          pc(M.cInt.comprehension), pc(M.cDull.comprehension),
+                            M.gaps.comprehension===null?"—":sg(M.gaps.comprehension*100,0)+" pkt"],
+    ["Ciekawostki otwarte", pc(M.cInt.teaserOpen), pc(M.cDull.teaserOpen),
+                            M.gaps.teaserOpen===null?"—":sg(M.gaps.teaserOpen*100,0)+" pkt"],
+    ["Błędy komisji",       pc(M.cInt.holdCommission), pc(M.cDull.holdCommission), "—"],
+    ["Przejścia przedwczesne", M.cInt.premature, M.cDull.premature,
+                            sg(M.cDull.premature - M.cInt.premature, 0)]
+  ];
+  return rows.map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td>` +
+    `<td class="num">${r[2]}</td><td class="num">${r[3]}</td></tr>`).join("");
+}
+
 function hyperfocusSigns(M){
   const s = [];
   if (M.offTaskRate !== null && M.offTaskRate <= 0.15) s.push("uwaga niemal stale przy tekście");
@@ -2188,9 +2400,23 @@ function hyperfocusSigns(M){
   return s;
 }
 
+/* Duża luka między warunkami to nie kolejny znak w kolejce, tylko
+   właściwy dowód: profil wygląda wzorowo wyłącznie dopóki tekst wciąga.
+   Dlatego obniża próg zapalenia ostrzeżenia.                          */
+function engagementGapSign(M){
+  if (!M.gaps) return null;
+  const big = (M.gaps.offTask !== null && M.gaps.offTask >= 0.3)
+           || (M.gaps.tail !== null && M.gaps.tail >= 0.15)
+           || (M.gaps.absorption !== null && M.gaps.absorption >= 1.5);
+  return big ? "wyraźnie gorszy profil na tekście nudnym niż na ciekawym" : null;
+}
+
 function renderResults(M){
   const r = $("results");
+  const gapSign = engagementGapSign(M);
   const hf = hyperfocusSigns(M);
+  if (gapSign) hf.unshift(gapSign);
+  const hfFire = gapSign ? hf.length >= 2 : hf.length >= 3;
   const mwPct = M.offTaskRate===null ? "—" : Math.round(M.offTaskRate*100)+"%";
   const pc = v => v===null ? "—" : Math.round(v*100)+"%";
   const catNote = `Rozkład odpowiedzi: przy tekście ${pc(M.cats.onTask)}, myślami gdzie indziej ${pc(M.cats.mw)}, `
@@ -2228,16 +2454,32 @@ function renderResults(M){
     </div>
   </section>
 
-  ${hf.length >= 3 ? `<section class="notice bad stack g3">
+  ${hfFire ? `<section class="notice bad stack g3">
     <p class="small"><strong>Ten profil pasuje też do hiperfokusu — nie czytaj go jako „brak trudności z uwagą”.</strong>
       Wszystkie progi w tym narzędziu traktują większe skupienie jako lepszy wynik, a głębokie pochłonięcie
       jednym ciekawym materiałem daje dokładnie taki obraz. Hiperfokus bywa opisywany właśnie w przebiegu ADHD
       i nie jest przeciwieństwem rozpraszalności — obie rzeczy da się czytać jako słabą kontrolę nad tym,
       w co uwaga się angażuje, a nie jako brak albo nadmiar samego zaangażowania.</p>
     <p class="small">Co się na to złożyło: ${hf.join(", ")}.</p>
-    <p class="small">Jedna sesja na tekście, który akurat okazał się interesujący, nie rozdziela wzorowej kontroli
-      uwagi od hiperfokusu. Rozstrzyga to wywiad o zmienności między różnymi kontekstami — zwłaszcza o zadaniach
-      nudnych i narzuconych, których to badanie w ogóle nie zawiera.</p>
+    <p class="small">${gapSign
+      ? "Kontrast ciekawy–nudny niżej pokazuje to wprost: profil trzyma się dopóty, dopóki tekst wciąga. To jest właśnie wzorzec, o który chodzi, ale jedna sesja go nie potwierdza — potrzebne są normy i wywiad o zmienności między kontekstami."
+      : "Sam kontrast ciekawy–nudny nie wypadł wyraźnie, więc to ostrzeżenie opiera się na samym poziomie wskaźników. Rozstrzyga wywiad o zmienności między kontekstami, zwłaszcza o zadaniach narzuconych, których to badanie nie zawiera."}</p>
+  </section>` : ""}
+
+  ${M.gaps ? `<section class="stack g4">
+    <div class="stack g2">
+      <h2>Ciekawy kontra nudny</h2>
+      <p class="small muted" style="max-width:44rem">Właściwym wskaźnikiem nie jest tu poziom, tylko
+        <strong>różnica wewnątrz tej samej osoby</strong>. Ktoś, kto na wciągającym tekście wygląda wzorowo,
+        a na proceduralnym rozsypuje się mocniej niż inni, pokazuje słabą kontrolę nad zaangażowaniem —
+        a nie sprawną albo niesprawną uwagę. Kolumna „luka” jest dodatnia, gdy warunek nudny wypada gorzej.</p>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Wskaźnik</th><th>Ciekawy</th><th>Nudny</th><th>Luka</th></tr></thead>
+        <tbody>${gapRows(M)}</tbody>
+      </table>
+    </div>
   </section>` : ""}
 
   <section class="stack g4">
@@ -2376,8 +2618,8 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.8", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
-          notifSet:S.notifSet, distMode:S.distMode,
+    meta:{version:"0.9", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+          notifSet:S.notifSet, distMode:S.distMode, order:S.orderKey,
           startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
           short:$("short").checked, practiceCaught:S.practiceCaught,
@@ -2388,6 +2630,7 @@ function renderResults(M){
     probes:S.probes, quiz:S.quiz, events:S.events,
     metrics:{tau:M.eg.tau, tailRatio:M.tail, skew:M.eg.skew, mu:M.eg.mu, sigma:M.eg.sigma, cv:M.cv, slowBand:M.slow,
              dprime:M.dprime, hits:M.hits, misses:M.miss, falseAlarms:M.fa, detectLatency:M.lat,
+             byInterest:{ciekawy:M.cInt, nudny:M.cDull}, engagementGaps:M.gaps,
              offTaskRate:M.offTaskRate, probeOnTask:M.cats.onTask, probeMindWandering:M.cats.mw,
              probeTaskRelated:M.cats.taskRel, probeExternal:M.cats.external, probeBlank:M.cats.blank,
              absorption:M.absorption,

@@ -44,21 +44,22 @@ mierzą naukę interfejsu, a nie uwagę; blok próbny przenosi tę naukę poza p
 a przy okazji pokazuje badanemu, czego właściwie ma szukać. Nie wchodzi do żadnego
 wskaźnika, ale trafia do pliku wyjściowego jako `practiceLines`.
 
-Potem trzy teksty popularnonaukowe po 26 linii. Prezentacja **samosterowana, jedna linia
+Potem cztery teksty po 26 linii, na przemian wciągające i proceduralne. Prezentacja **samosterowana, jedna linia
 naraz** (self-paced reading, wariant niekumulacyjny) — badany sam decyduje, kiedy
 przejść dalej, więc czas linii to czysty czas przetwarzania.
 
-Materiał istnieje w **dwóch formach równoległych**, dobranych parami co do dziedziny
-i budowy:
+Materiał istnieje w **dwóch formach równoległych**, każda złożona z czterech tekstów
+ułożonych na przemian ciekawy–nudny:
 
-| | Forma A | Forma B |
-|---|---|---|
-| ocean / geologia | Bałtyk | Wieczna zmarzlina |
-| nawigacja zwierząt | Nawigacja pszczół | Wędrówki węgorza |
-| historia technologii | Historia papieru | Historia szkła |
+| Pozycja | Rodzaj | Forma A | Forma B |
+|---|---|---|---|
+| 1 | ciekawy | Bałtyk | Wieczna zmarzlina |
+| 2 | nudny | Regulamin wypożyczalni | Archiwizacja dokumentów |
+| 3 | ciekawy | Nawigacja pszczół | Wędrówki węgorza |
+| 4 | nudny | Numeracja części zamiennych | Inwentaryzacja środków trwałych |
 
-Obie mają po 78 linii, 9 linii bez sensu, 6 powiadomień, 6 sond i 12 pytań;
-średnia długość linii to 70 i 67 znaków. Bez drugiej formy retest jest niewykonalny —
+Obie mają po 104 linie, 12 linii bez sensu, 8 gniazd dystraktora, 8 sond, 8 linii
+zatrzymanych i 16 pytań. Kolejność warunków da się odwrócić — patrz sekcja o hiperfokusie. Bez drugiej formy retest jest niewykonalny —
 osoba, która przeszła sesję raz, wie już, gdzie są linie absurdalne. Przy większej
 próbie warto kontrbalansować: połowa badanych A→B, połowa B→A.
 
@@ -77,7 +78,7 @@ Kanały pasywne, o których badany nie myśli: powroty do poprzedniej linii (`�
 przejścia szybsze niż fizycznie możliwe do przeczytania, czas trzymania klawisza,
 utrata fokusu okna. Na końcu każdego tekstu — cztery pytania o treść.
 
-Czas: 12–18 minut, tryb skrócony ok. 5.
+Czas: około 25 minut, tryb skrócony ok. 10.
 
 ## Co odciąga od tekstu
 
@@ -344,13 +345,34 @@ warunku porównawczego. Informacja różnicująca leży w **zmienności między 
 zwłaszcza w zadaniach nudnych i narzuconych, których to badanie w ogóle nie zawiera.
 Rozstrzyga o tym wywiad kliniczny, nie ekran.
 
-Dałoby się jednak podejść bliżej. Najmocniejszy możliwy krok to **blok celowo nudny**:
-czwarty tekst pozbawiony narracji, ciekawostek i wszystkiego, co przyciąga — instrukcja
-techniczna, regulamin, tabela parametrów. Wtedy właściwym wskaźnikiem staje się różnica
-wewnątrz tej samej osoby między materiałem ciekawym a nudnym. Ktoś, kto na ciekawym
-tekście wygląda wzorowo, a na nudnym rozsypuje się bardziej niż inni, pokazuje dokładnie
-ten wzorzec, o który chodzi. Wymaga to czwartego tekstu w każdej formie i kontrbalansowania
-kolejności.
+### Warunek nudny — i dlaczego naprzemiennie
+
+Sesja składa się z czterech tekstów ułożonych **na przemian: ciekawy, nudny, ciekawy,
+nudny**. To lepsze niż jeden nudny blok doklejony na końcu, z trzech powodów: daje dwa
+pomiary w każdym warunku zamiast jednego, rozkłada oba warunki po całej sesji, więc
+warunek nie skleja się ze zmęczeniem, i pozwala zobaczyć kontrast w dwóch punktach czasu.
+
+Teksty nudne są celowo pozbawione narracji, przyczynowości i wszystkiego, co przyciąga:
+regulamin wypożyczalni, zasady numeracji części, procedura archiwizacji, instrukcja
+inwentaryzacji. Zrównane z ciekawymi co do liczby linii, długości linii, liczby pytań
+i całego rozkładu zdarzeń.
+
+Warunek początkowy trzeba **kontrbalansować** — sam start od nudnego materiału zmienia
+nastawienie na resztę sesji. Wybór kolejności (od ciekawego albo od nudnego) jest na
+ekranie startowym i zapisuje się w pliku wyniku; połowa próby powinna dostać każdą.
+
+Panel pokazuje osobną tabelę: każdy wskaźnik w warunku ciekawym, w nudnym i różnicę.
+**Właściwym wskaźnikiem jest ta różnica, nie poziom.** Ktoś, kto na wciągającym tekście
+wygląda wzorowo, a na proceduralnym rozsypuje się mocniej niż inni, pokazuje słabą kontrolę
+nad zaangażowaniem — a nie sprawną albo niesprawną uwagę.
+
+Duża luka **obniża próg zapalenia ostrzeżenia** o hiperfokusie z trzech znaków do dwóch,
+bo nie jest kolejnym znakiem w kolejce, tylko właściwym dowodem: profil trzyma się
+dopóty, dopóki tekst wciąga. Gdy luki nie ma, ostrzeżenie mówi wprost, że opiera się
+wyłącznie na poziomie wskaźników.
+
+Ceną jest długość: 104 linie zamiast 78, czyli około 25 minut. Tryb skrócony bierze po
+jednym tekście z każdego warunku, więc kontrast zachowuje się także w wersji poglądowej.
 
 ## Linie zatrzymane: hamowanie i czekanie
 

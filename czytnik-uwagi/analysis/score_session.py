@@ -306,6 +306,55 @@ def score(session):
     out["comprehension_clean"] = acc_clean
     out["lure_cost"] = (acc_clean - acc_lure) if (acc_lure is not None and acc_clean is not None) else None
 
+    # --- kontrast ciekawy kontra nudny ---
+    # Właściwy wskaźnik nie jest tu poziomem, tylko RÓŻNICĄ wewnątrz tej
+    # samej osoby: profil, który trzyma się wyłącznie dopóki tekst wciąga,
+    # świadczy o słabej kontroli nad zaangażowaniem, a nie o sprawnej uwadze.
+    interest_of = {l["passage"]: l.get("interest") for l in lines}
+
+    def condition(kind):
+        idx = [i for i, l in enumerate(lines) if not l.get("held") and l.get("interest") == kind]
+        if len(idx) < 8:
+            return None
+        rts = [float(lines[i]["rt"]) for i in idx]
+        res_k = [res_full[i] for i in idx]
+        pr = [x for x in probes if (lines[x["lineIdx"]].get("interest") if x["lineIdx"] < len(lines) else None) == kind]
+        ab = [x["absorption"] for x in pr if isinstance(x.get("absorption"), (int, float))]
+        qz = [x for x in quiz if interest_of.get(x["passage"]) == kind]
+        tzk = [x for x in tz if interest_of.get(x["passage"]) == kind]
+        hd = [l for l in lines if l.get("held") and l.get("interest") == kind]
+        return {
+            "n": len(idx),
+            "tail": (quantile(res_k, 0.9) - quantile(res_k, 0.5)) / (st.median(rts) or 1),
+            "cv": st.pstdev(res_k) / (st.fmean(rts) or 1),
+            "ms_per_char": st.fmean([lines[i]["rt"] / lines[i]["chars"] for i in idx]),
+            "off_task": (sum(1 for x in pr if x["key"] in OFF_TASK) / len(pr)) if pr else None,
+            "absorption": st.fmean(ab) if ab else None,
+            "comprehension": (sum(x["correct"] for x in qz) / len(qz)) if qz else None,
+            "teaser_open": (sum(1 for x in tzk if x.get("opened")) / len(tzk)) if tzk else None,
+            "hold_commission": (sum(1 for l in hd if l.get("holdPresses", 0)) / len(hd)) if hd else None,
+        }
+
+    ci, cd = condition("ciekawy"), condition("nudny")
+    out["by_interest"] = {"ciekawy": ci, "nudny": cd}
+
+    def _gap(a, b_, invert=False):
+        if a is None or b_ is None:
+            return None
+        return (a - b_) if invert else (b_ - a)
+
+    if ci and cd:
+        out["gap_tail"] = _gap(ci["tail"], cd["tail"])
+        out["gap_cv"] = _gap(ci["cv"], cd["cv"])
+        out["gap_off_task"] = _gap(ci["off_task"], cd["off_task"])
+        out["gap_absorption"] = _gap(ci["absorption"], cd["absorption"], True)
+        out["gap_comprehension"] = _gap(ci["comprehension"], cd["comprehension"], True)
+        out["gap_teaser_open"] = _gap(ci["teaser_open"], cd["teaser_open"])
+    else:
+        for k in ("gap_tail", "gap_cv", "gap_off_task", "gap_absorption",
+                  "gap_comprehension", "gap_teaser_open"):
+            out[k] = None
+
     # --- hamowanie reakcji na liniach zatrzymanych ---
     held = [l for l in lines if l.get("held")]
     presses = [l.get("holdPresses", 0) for l in held]
@@ -359,6 +408,15 @@ def score(session):
     return out
 
 
+def engagement_gap_sign(m):
+    """Duża luka między warunkami to nie kolejny znak w kolejce, tylko
+    właściwy dowód: profil wygląda wzorowo tylko dopóki tekst wciąga."""
+    big = (m.get("gap_off_task") is not None and m["gap_off_task"] >= 0.3) \
+       or (m.get("gap_tail") is not None and m["gap_tail"] >= 0.15) \
+       or (m.get("gap_absorption") is not None and m["gap_absorption"] >= 1.5)
+    return "wyraźnie gorszy profil na tekście nudnym niż na ciekawym" if big else None
+
+
 def hyperfocus_signs(m):
     """Wszystkie progi traktują większe skupienie jako lepszy wynik, więc
     hiperfokus na tym konkretnym materiale wygląda tu jak wzorowa kontrola
@@ -401,6 +459,9 @@ LABELS = {
     "lure_questions": "pytań z przynętą", "lure_rate": "przynęta w odpowiedzi",
     "lure_share_of_errors": "przynęty wśród błędów", "comprehension_lure": "rozumienie: z przynętą",
     "comprehension_clean": "rozumienie: bez przynęty", "lure_cost": "koszt kontaminacji",
+    "gap_tail": "luka: ogon odporny", "gap_cv": "luka: zmienność",
+    "gap_off_task": "luka: poza tekstem", "gap_absorption": "luka: wciągnięcie",
+    "gap_comprehension": "luka: rozumienie", "gap_teaser_open": "luka: ciekawostki",
     "hold_lines": "linii zatrzymanych", "hold_commission": "błędy komisji",
     "hold_presses": "naciśnięć w oknie", "hold_first_ms": "czas 1. naciśnięcia (ms)",
     "hold_tolerance": "tolerancja czekania", "post_error_slowing": "korekta po błędzie (ms)",
@@ -432,7 +493,7 @@ def check_against_browser(sess, mine):
              ("post_error_slowing", "postErrorSlowing"), ("vigilance_slope", "vigilanceSlope"),
              ("lure_rate", "lureRate"), ("teaser_open_rate", "teaserOpenRate"),
              ("lure_cost", "lureCost"), ("habituation_slope", "habituationSlope"),
-             ("time_ratio", "timeRatio")]
+             ("time_ratio", "timeRatio"), ("gap_tail", "gapTail")]
     bad = []
     for py, js in pairs:
         a, b_ = mine.get(py), sess.get("metrics", {}).get(js)
@@ -495,7 +556,10 @@ def main():
     if mine.get("tau") is None:
         print("uwaga: tau nieokreślone (rozkład bez prawostronnej skośności) — czytaj ogon odporny\n")
     hf = hyperfocus_signs(mine)
-    if len(hf) >= 3:
+    gap_sign = engagement_gap_sign(mine)
+    if gap_sign:
+        hf.insert(0, gap_sign)
+    if len(hf) >= (2 if gap_sign else 3):
         print("uwaga: profil pasuje też do hiperfokusu, nie tylko do sprawnej uwagi —")
         print("       " + ", ".join(hf))
         print("       jedna sesja na ciekawym materiale tego nie rozdziela\n")
