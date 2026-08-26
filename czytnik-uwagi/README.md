@@ -274,9 +274,14 @@ tylko wskazanie, który konstrukt ma tu jakąkolwiek reprezentację pomiarową.
 | Dobrowolne porzucenie zadania | odsetek otwartych ciekawostek, czas w nich spędzony | średnia |
 | Habituacja do bodźca nieistotnego | nachylenie kosztu kolejnych zakłóceń | słaba — tylko 6 ekspozycji |
 | Wrażliwość na wzmocnienie | **brak** | wymagałaby bloku z informacją zwrotną |
+| Hiperfokus, trudność oderwania się | odczuwany czas, subiektywne tempo, flaga ostrzegawcza | słaba — brakuje warunku nudnego do porównania |
 | Nadruchliwość | **brak** | wymaga pomiaru ruchu, nie klawiatury |
 
-Trzy zastrzeżenia, których nie wolno pominąć:
+Cztery zastrzeżenia, których nie wolno pominąć:
+
+**Wysokie skupienie nie jest tu automatycznie dobrym wynikiem.** Progi zakładają, że mniej
+rozproszenia znaczy lepiej, a hiperfokus na tym materiale daje ten sam obraz co wzorowa
+kontrola uwagi. Osobna sekcja niżej opisuje, co z tym zrobiono i czego zrobić się nie da.
 
 **No-go to nie stop-signal.** Linie zatrzymane sygnalizują zakaz od początku ekspozycji,
 więc mierzą powstrzymanie reakcji jeszcze niezainicjowanej. Czas hamowania reakcji już
@@ -292,6 +297,60 @@ byłaby innym zadaniem, bliższym klasycznemu CPT.
 **Dwutorowość jest reprezentowana asymetrycznie.** Tor wykonawczy ma tu kilka wskaźników,
 tor motywacyjny w zasadzie jeden — tolerancję czekania. Do pełnego obrazu trzeba dołożyć
 dyskontowanie odroczenia, co jest osobnym, krótkim zadaniem i naturalnym kolejnym krokiem.
+
+## Hiperfokus, czyli największa pułapka interpretacyjna tego narzędzia
+
+**Wszystkie progi w tym narzędziu traktują większe skupienie jako lepszy wynik.** Osoba,
+która wpadła w hiperfokus na tym konkretnym materiale, dostaje niskie τ, równe tempo,
+zerowe odpływanie, wciągnięcie 5 na 5, żadnej otwartej ciekawostki i zakłócenia bez kosztu.
+Panel powie: wzorowa kontrola uwagi. A hiperfokus bywa opisywany właśnie w przebiegu ADHD.
+
+To nie jest drobiazg do przypisu. To jest sposób, w jaki narzędzie może dać wynik
+dokładnie odwrotny do prawdy, i zasługuje na więcej uwagi niż większość pozostałych
+ograniczeń.
+
+### Co o hiperfokusie w ogóle wiadomo
+
+Mniej, niż sugeruje częstość, z jaką pojawia się w rozmowie. Nie ma go w kryteriach DSM-5
+ani ICD-11. Dane pochodzą głównie ze skal samoopisowych i pokazują związek z nasileniem
+objawów, ale to nie to samo co dowód, że zjawisko jest swoiste dla ADHD — głębokie
+pochłonięcie zadaniem zdarza się wszystkim.
+
+Najsensowniejsze obecne ujęcie: hiperfokus **nie jest przeciwieństwem rozpraszalności**.
+Obie rzeczy da się czytać jako słabą kontrolę nad tym, w co uwaga się angażuje — trudno
+oderwać się od tego, co wciąga, i trudno wejść w to, co nie wciąga. Deficyt dotyczy
+regulacji zaangażowania, a nie jego poziomu. Przy takim ujęciu „wysokie skupienie"
+przestaje być automatycznie dobrą wiadomością.
+
+### Co zostało z tego zmierzone
+
+**Odczuwany czas.** Po zakończeniu, bez wcześniejszej zapowiedzi, pada pytanie o to, ile
+minut zajęło czytanie, oraz o subiektywne tempo w skali 1–5. Skrócenie odczuwanego czasu
+jest klasycznym śladem głębokiego pochłonięcia. Pytanie musi być zadane **retrospektywnie
+i bez uprzedzenia**: badany świadomy, że będzie o to pytany, zacznie liczyć czas, a to jest
+już zadanie równoległe i mierzy coś innego. Czas poza oknem odejmuje się od mianownika.
+
+**Ostrzeżenie w panelu.** Gdy zbiegną się co najmniej trzy z sześciu znaków — uwaga niemal
+stale przy tekście, wciągnięcie co najmniej 4 na 5, wyjątkowo równe tempo, zero otwartych
+ciekawostek, czas oceniony jako wyraźnie krótszy niż był, zakłócenia bez kosztu — panel
+otwiera się czerwoną adnotacją, że ten profil pasuje też do hiperfokusu. Skrypt w Pythonie
+wypisuje to samo ostrzeżenie. Nie rozstrzyga to niczego; podnosi flagę.
+
+### Czego to nie rozstrzygnie
+
+Jedna sesja na tekście, który akurat okazał się interesujący, nie rozdziela wzorowej
+kontroli uwagi od hiperfokusu — i żadne dołożone wskaźniki tego nie zmienią, bo brakuje
+warunku porównawczego. Informacja różnicująca leży w **zmienności między kontekstami**,
+zwłaszcza w zadaniach nudnych i narzuconych, których to badanie w ogóle nie zawiera.
+Rozstrzyga o tym wywiad kliniczny, nie ekran.
+
+Dałoby się jednak podejść bliżej. Najmocniejszy możliwy krok to **blok celowo nudny**:
+czwarty tekst pozbawiony narracji, ciekawostek i wszystkiego, co przyciąga — instrukcja
+techniczna, regulamin, tabela parametrów. Wtedy właściwym wskaźnikiem staje się różnica
+wewnątrz tej samej osoby między materiałem ciekawym a nudnym. Ktoś, kto na ciekawym
+tekście wygląda wzorowo, a na nudnym rozsypuje się bardziej niż inni, pokazuje dokładnie
+ten wzorzec, o który chodzi. Wymaga to czwartego tekstu w każdej formie i kontrbalansowania
+kolejności.
 
 ## Linie zatrzymane: hamowanie i czekanie
 

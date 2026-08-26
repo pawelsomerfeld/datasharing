@@ -331,6 +331,18 @@ def score(session):
     out["post_error_n"] = len(post)
     out["post_error_slowing"] = (st.fmean(post) - st.fmean(res)) if post else None
 
+    # --- poczucie czasu ---
+    # Czas poza oknem odejmujemy: nie było go w zadaniu, więc nie powinno
+    # go być w mianowniku odczuwanego czasu.
+    t_ev = next((e for e in all_events if e["type"] == "time-estimate"), None)
+    blur = sum(e.get("away", 0) for e in all_events if e["type"] == "window-focus")
+    est = t_ev["minutes"] if t_ev else None
+    actual = max(t_ev["t"] - blur, 1) if t_ev else None
+    out["time_estimate_min"] = est
+    out["time_actual_min"] = (actual / 60000) if actual else None
+    out["time_ratio"] = ((est * 60000) / actual) if (est and actual) else None
+    out["time_pace"] = t_ev["pace"] if t_ev else None
+
     # --- spadek czujności: nachylenie tempa względem pozycji w sesji ---
     idx = [i for i, l in enumerate(lines) if not l.get("held")]
     if len(idx) >= 20:
@@ -345,6 +357,26 @@ def score(session):
     tot = sum(rt)
     out["wpm"] = sum(l["words"] for l in read) / (tot / 60000) if tot else None
     return out
+
+
+def hyperfocus_signs(m):
+    """Wszystkie progi traktują większe skupienie jako lepszy wynik, więc
+    hiperfokus na tym konkretnym materiale wygląda tu jak wzorowa kontrola
+    uwagi. Ta funkcja tego nie rozstrzyga — tylko podnosi flagę."""
+    s = []
+    if m.get("off_task_rate") is not None and m["off_task_rate"] <= 0.15:
+        s.append("uwaga niemal stale przy tekście")
+    if m.get("absorption") is not None and m["absorption"] >= 4:
+        s.append("bardzo wysokie deklarowane wciągnięcie")
+    if m.get("tail_ratio") is not None and m["tail_ratio"] <= 0.25:
+        s.append("wyjątkowo równe tempo")
+    if m.get("teasers_shown") and m.get("teaser_open_rate") == 0:
+        s.append("żadna ciekawostka nie została otwarta")
+    if m.get("time_ratio") is not None and m["time_ratio"] <= 0.8:
+        s.append("czas oceniony jako wyraźnie krótszy, niż był")
+    if m.get("distractor_cost") is not None and m["distractor_cost"] <= 50:
+        s.append("zakłócenia praktycznie bez kosztu")
+    return s
 
 
 LABELS = {
@@ -373,6 +405,8 @@ LABELS = {
     "hold_presses": "naciśnięć w oknie", "hold_first_ms": "czas 1. naciśnięcia (ms)",
     "hold_tolerance": "tolerancja czekania", "post_error_slowing": "korekta po błędzie (ms)",
     "post_error_n": "błędów do korekty", "vigilance_slope": "spadek czujności",
+    "time_estimate_min": "czas oceniony (min)", "time_actual_min": "czas rzeczywisty (min)",
+    "time_ratio": "odczuwany czas (x)", "time_pace": "subiektywne tempo (1-5)",
     "regressions": "powroty", "premature": "przejścia przedwczesne",
     "blur_count": "wyjścia poza okno", "comprehension": "rozumienie", "wpm": "słów/min",
 }
@@ -397,7 +431,8 @@ def check_against_browser(sess, mine):
              ("hold_commission", "holdCommission"), ("hold_tolerance", "holdTolerance"),
              ("post_error_slowing", "postErrorSlowing"), ("vigilance_slope", "vigilanceSlope"),
              ("lure_rate", "lureRate"), ("teaser_open_rate", "teaserOpenRate"),
-             ("lure_cost", "lureCost"), ("habituation_slope", "habituationSlope")]
+             ("lure_cost", "lureCost"), ("habituation_slope", "habituationSlope"),
+             ("time_ratio", "timeRatio")]
     bad = []
     for py, js in pairs:
         a, b_ = mine.get(py), sess.get("metrics", {}).get(js)
@@ -459,6 +494,11 @@ def main():
     print(head + "\n")
     if mine.get("tau") is None:
         print("uwaga: tau nieokreślone (rozkład bez prawostronnej skośności) — czytaj ogon odporny\n")
+    hf = hyperfocus_signs(mine)
+    if len(hf) >= 3:
+        print("uwaga: profil pasuje też do hiperfokusu, nie tylko do sprawnej uwagi —")
+        print("       " + ", ".join(hf))
+        print("       jedna sesja na ciekawym materiale tego nie rozdziela\n")
     for k, lab in LABELS.items():
         print(f"{lab:<26}{show(mine.get(k)):>14}")
     bad = check_against_browser(sess, mine)

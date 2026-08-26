@@ -281,6 +281,8 @@ input[type=radio]{accent-color:var(--signal); width:1rem; height:1rem}
 }
 .scale button:hover{background:#1d2b29; border-color:var(--stage-sig); color:var(--stage-sig)}
 .scale-ends{display:flex; justify-content:space-between; gap:var(--s4); font-size:.78rem; color:var(--stage-dim)}
+#timeq .field input{background:#141f1e; border-color:#2b3937; color:var(--stage-ink)}
+.scale button.on{background:var(--stage-sig); border-color:var(--stage-sig); color:#0c1413}
 
 /* ---------- results ---------- */
 .metrics{
@@ -322,7 +324,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.7</p>
+    <p class="eyebrow">Prototyp badawczy · v0.8</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -473,6 +475,27 @@ textarea{
       <span>1 — wcale, myśli były gdzie indziej</span>
       <span>5 — całkowicie, nie było mnie tu</span>
     </div>
+  </div>
+</div>
+
+<!-- ============ 3c. POCZUCIE CZASU ============ -->
+<div class="overlay" id="timeq">
+  <div class="stack g5" style="max-width:34rem; width:100%">
+    <div class="stack g2">
+      <p class="eyebrow" style="color:var(--stage-sig)">Ostatnie pytanie</p>
+      <h2>Ile czasu zajęło Ci całe czytanie?</h2>
+      <p class="small" style="color:var(--stage-dim)">Nie sprawdzaj zegara — podaj tyle, ile Ci się wydaje.</p>
+    </div>
+    <label class="field" style="max-width:11rem">
+      <span style="color:var(--stage-dim)">Minuty</span>
+      <input id="tq-min" type="number" min="1" max="180" step="1" inputmode="numeric">
+    </label>
+    <div class="stack g3">
+      <p>Ten czas minął…</p>
+      <div class="scale" id="tq-pace"></div>
+      <div class="scale-ends"><span>1 — bardzo wolno</span><span>5 — bardzo szybko</span></div>
+    </div>
+    <button class="btn" id="tq-go" disabled style="align-self:flex-start">Zakończ</button>
   </div>
 </div>
 
@@ -940,7 +963,7 @@ const S = {
   t0:0, form:"A", practice:false, meta:{}, practiceLines:[], practiceCaught:null, practicePressedHold:null,
   sal:SALIENCE.natarczywy, notifSet:"wciagajace", distMode:"ciekawostki",
   teasers:[], tzCurrent:null, notifTimers:[], notifPlanned:0, previewing:false,
-  holding:false, holdTimer:null, msPerChar:[],
+  holding:false, holdTimer:null, msPerChar:[], timeEst:null, timePace:null,
   order:[], pi:0, li:0,
   lines:[],          // rekord każdej linii (pierwsze wejście)
   events:[],         // surowy log zdarzeń
@@ -1095,6 +1118,7 @@ function toCSV(all){
                 "lureShareOfErrors","comprehensionLure","comprehensionClean","lureCost",
                 "holdLines","holdCommission","holdPresses","holdFirstPressMs","holdTolerance",
                 "postErrorSlowing","postErrorN","vigilanceSlope",
+                "timeEstimateMin","timeActualMin","timeRatio","timePace",
                 "regressions","premature","blurCount","blurTotalMs","comprehension","wpm","medianKeyHoldMs"];
   const head = [...meta, ...met, "distractorLag1","distractorLag2","distractorLag3"];
   const cell = v => {
@@ -1621,6 +1645,7 @@ function onKeyDown(e){
   if ($("after-practice").classList.contains("on")) return;
   if ($("probe").classList.contains("on")) return handleProbeKey(e);
   if ($("probe2").classList.contains("on")) return handleAbsorptionKey(e);
+  if ($("timeq").classList.contains("on")) return;
   if ($("quiz").classList.contains("on"))  return handleQuizKey(e);
   if (!$("stage").classList.contains("on")) return;
   if (e.code === "Space"){
@@ -1789,7 +1814,41 @@ function answerQuiz(i){
   if (quizQ + 1 < p.questions.length) return openQuiz(quizP, quizQ + 1);
   $("quiz").classList.remove("on");
   if (S.li + 1 < S.lines.length){ S.li++; $("stage").classList.add("on"); showLine(); }
-  else finish();
+  else askTime();
+}
+
+/* ---------- poczucie czasu ----------
+   Pytanie zadawane wyłącznie na końcu i bez zapowiedzi. Uprzedzony
+   badany zacząłby czas liczyć, a to jest już zadanie równoległe i mierzy
+   coś innego. Interesuje nas ocena z pamięci: skrócenie odczuwanego
+   czasu jest klasycznym śladem głębokiego pochłonięcia zadaniem.      */
+let tqPace = null;
+function askTime(){
+  const box = $("tq-pace"); box.innerHTML = "";
+  for (let v = 1; v <= 5; v++){
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = v;
+    b.addEventListener("click", () => {
+      tqPace = v;
+      [...box.children].forEach((c, i) => c.classList.toggle("on", i === v - 1));
+      syncTimeGo();
+    });
+    box.appendChild(b);
+  }
+  $("tq-min").addEventListener("input", syncTimeGo);
+  $("tq-go").addEventListener("click", () => {
+    S.timeEst = Number($("tq-min").value);
+    S.timePace = tqPace;
+    log("time-estimate", {minutes:S.timeEst, pace:S.timePace});
+    $("timeq").classList.remove("on");
+    finish();
+  });
+  $("timeq").classList.add("on");
+  $("tq-min").focus();
+}
+function syncTimeGo(){
+  const v = Number($("tq-min").value);
+  $("tq-go").disabled = !(v >= 1 && tqPace !== null);
 }
 
 /* ---------- utrata okna ---------- */
@@ -2065,7 +2124,16 @@ function computeMetrics(){
   const totMs = rd.reduce((a,r)=>a+r.rt,0);
   const wpm = totMs>0 ? rd.reduce((a,r)=>a+r.words,0)/(totMs/60000) : null;
 
+  /* --- poczucie czasu ---
+     Czas poza oknem odejmujemy: nie było go w zadaniu, więc nie powinno
+     go być w mianowniku odczuwanego czasu.                            */
+  const tEv = S.events.find(e => e.type === "time-estimate");
+  const tActual = tEv ? Math.max(tEv.t - S.blurTotal, 1) : null;
+  const timeRatio = (S.timeEst && tActual) ? (S.timeEst * 60000) / tActual : null;
+
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
+    timeEst:S.timeEst, timeActualMin:tActual === null ? null : tActual / 60000,
+    timeRatio, timePace:S.timePace,
     cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
     clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
     costSeq, habituation, costTeaser, costNotif,
@@ -2104,8 +2172,25 @@ function metricCard(label, val, unit, note, cls, dir, small){
     <span class="m-note">${note}</span></div>`;
 }
 
+/* Każdy próg w tym narzędziu traktuje „bardziej skupiony" jako
+   „lepszy". Osoba, która wpadła w hiperfokus na tym konkretnym
+   materiale, wychodzi więc na wzór kontroli uwagi — a hiperfokus bywa
+   opisywany właśnie w przebiegu ADHD. Jedna sesja na ciekawym tekście
+   nie rozdziela tych dwóch możliwości i panel musi to mówić wprost. */
+function hyperfocusSigns(M){
+  const s = [];
+  if (M.offTaskRate !== null && M.offTaskRate <= 0.15) s.push("uwaga niemal stale przy tekście");
+  if (M.absorption !== null && M.absorption >= 4) s.push("bardzo wysokie deklarowane wciągnięcie");
+  if (M.tail !== null && M.tail <= 0.25) s.push("wyjątkowo równe tempo");
+  if (M.tzShown && M.tzOpenRate === 0) s.push("żadna ciekawostka nie została otwarta");
+  if (M.timeRatio !== null && M.timeRatio <= 0.8) s.push("czas oceniony jako wyraźnie krótszy, niż był");
+  if (M.distCost !== null && M.distCost <= 50) s.push("zakłócenia praktycznie bez kosztu");
+  return s;
+}
+
 function renderResults(M){
   const r = $("results");
+  const hf = hyperfocusSigns(M);
   const mwPct = M.offTaskRate===null ? "—" : Math.round(M.offTaskRate*100)+"%";
   const pc = v => v===null ? "—" : Math.round(v*100)+"%";
   const catNote = `Rozkład odpowiedzi: przy tekście ${pc(M.cats.onTask)}, myślami gdzie indziej ${pc(M.cats.mw)}, `
@@ -2142,6 +2227,18 @@ function renderResults(M){
       </div>
     </div>
   </section>
+
+  ${hf.length >= 3 ? `<section class="notice bad stack g3">
+    <p class="small"><strong>Ten profil pasuje też do hiperfokusu — nie czytaj go jako „brak trudności z uwagą”.</strong>
+      Wszystkie progi w tym narzędziu traktują większe skupienie jako lepszy wynik, a głębokie pochłonięcie
+      jednym ciekawym materiałem daje dokładnie taki obraz. Hiperfokus bywa opisywany właśnie w przebiegu ADHD
+      i nie jest przeciwieństwem rozpraszalności — obie rzeczy da się czytać jako słabą kontrolę nad tym,
+      w co uwaga się angażuje, a nie jako brak albo nadmiar samego zaangażowania.</p>
+    <p class="small">Co się na to złożyło: ${hf.join(", ")}.</p>
+    <p class="small">Jedna sesja na tekście, który akurat okazał się interesujący, nie rozdziela wzorowej kontroli
+      uwagi od hiperfokusu. Rozstrzyga to wywiad o zmienności między różnymi kontekstami — zwłaszcza o zadaniach
+      nudnych i narzuconych, których to badanie w ogóle nie zawiera.</p>
+  </section>` : ""}
 
   <section class="stack g4">
     <div class="stack g2">
@@ -2232,6 +2329,8 @@ function renderResults(M){
     <div class="metrics">
       ${metricCard("Powroty do poprzedniej linii", M.regressions, "", "Ile razy trzeba było cofnąć się o linię. Wysokie wartości przy dobrym rozumieniu to raczej kompensacja niż deficyt.", band(M.regressions,4,10,1))}
       ${metricCard("Przejścia przedwczesne", M.premature, "", "Linie zamknięte szybciej niż 12 ms na znak, czyli poniżej fizycznej granicy czytania. Pomijanie treści.", band(M.premature,0,2,1))}
+      ${metricCard("Odczuwany czas", M.timeRatio===null?"—":fmt(M.timeRatio,2)+"×", "", `Ocena badanego ${M.timeEst===null?"—":M.timeEst+" min"} wobec rzeczywistych ${fmt(M.timeActualMin,1)} min (bez czasu poza oknem). Poniżej 1 znaczy, że czas się skrócił — klasyczny ślad głębokiego pochłonięcia. Pytanie pada bez zapowiedzi, żeby nikt nie liczył czasu w trakcie.`, band(M.timeRatio,0.85,0.65,-1), -1)}
+      ${metricCard("Subiektywne tempo", M.timePace===null?"—":M.timePace, M.timePace===null?"":" / 5", "Jak szybko, zdaniem badanego, minął ten czas. 5 to „bardzo szybko”. Zestawiaj z odczuwanym czasem — zgodność obu wskaźników jest mocniejszym sygnałem niż każdy z osobna.", "")}
       ${metricCard("Czas trzymania spacji", fmt(M.hold,0), " ms", "Mediana. Bardzo krótkie, jednostajne naciśnięcia towarzyszą przewijaniu na automat.", "")}
       ${metricCard("Walidacja wewnętrzna", (M.preMW!==null&&M.preOn!==null)? fmt(M.preMW/M.preOn,2)+"×" : "—", "", "Rozrzut czasów w czterech liniach przed sondą „odpłynąłem” podzielony przez ten sam rozrzut przed sondą „byłem przy tekście”. Wartość powyżej 1 znaczy, że zmienność zapowiadała odpływanie — dowód, że pomiar łapie to samo, co samoopis.", "")}
     </div>
@@ -2277,7 +2376,7 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.7", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+    meta:{version:"0.8", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
           notifSet:S.notifSet, distMode:S.distMode,
           startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
@@ -2305,6 +2404,8 @@ function renderResults(M){
              holdLines:M.holdN, holdCommission:M.holdCommission, holdPresses:M.holdPresses,
              holdFirstPressMs:M.holdFirst, holdTolerance:M.holdTolerance,
              postErrorSlowing:M.postError, postErrorN:M.postErrorN, vigilanceSlope:M.vig,
+             timeEstimateMin:M.timeEst, timeActualMin:M.timeActualMin,
+             timeRatio:M.timeRatio, timePace:M.timePace,
              regressions:M.regressions, premature:M.premature, blurCount:M.blurCount,
              blurTotalMs:M.blurTotal, comprehension:M.acc, wpm:M.wpm, medianKeyHoldMs:M.hold}
   };
