@@ -322,7 +322,7 @@ textarea{
 <!-- ============ 1. WPROWADZENIE ============ -->
 <main id="intro" class="wrap stack g7">
   <header class="stack g4">
-    <p class="eyebrow">Prototyp badawczy · v0.6</p>
+    <p class="eyebrow">Prototyp badawczy · v0.7</p>
     <h1 class="hero-title">Czytnik Uwagi</h1>
     <p class="lede">
       Zadanie czytania samosterowanego z ukrytymi sondami uwagi. Zamiast pytać, czy trudno Ci się skupić,
@@ -1089,6 +1089,7 @@ function toCSV(all){
                 "detectLatency","offTaskRate","probeOnTask","probeMindWandering","probeTaskRelated",
                 "probeExternal","probeBlank","absorption","preProbeSdRatio","distractorCost",
                 "distractorsPlanned","distractorsShown","distractorsDelivered",
+                "habituationSlope","distractorCostTeaser","distractorCostNotification",
                 "distractorHoverRate","distractorHoverMs","distractorClicks",
                 "teasersShown","teaserOpenRate","teaserDwellMs","lureQuestions","lureRate",
                 "lureShareOfErrors","comprehensionLure","comprehensionClean","lureCost",
@@ -1960,6 +1961,29 @@ function computeMetrics(){
   const base = rd.filter(r=>!r.distractor && !r.anomaly).map(r=>r.resid);
   const dLines = rd.filter(r=>r.distractor).map(r=>r.resid);
   const distCost = dLines.length ? mean(dLines) - mean(base) : null;
+
+  /* Habituacja. Uśrednienie kosztu po wszystkich ekspozycjach gubi to,
+     co w rozpraszalności najciekawsze: zdrowy układ uwagowy słabnie
+     w reagowaniu na bodziec, który okazał się nieistotny, więc koszt
+     kolejnych zakłóceń maleje. Brak tego opadania — koszt płaski albo
+     rosnący — to inny obraz niż sam wysoki koszt średni.             */
+  const dRows = rd.filter(r => r.distractor);
+  const typeOf = r => (S.distMode === "ciekawostki"
+                    || (S.distMode === "oba" && r.distSlot % 2 === 0)) && r.teaser
+                    ? "ciekawostka" : "powiadomienie";
+  const costSeq = dRows.map((r, k) => ({k, cost:r.resid - mean(base), type:typeOf(r)}));
+  const habituation = (() => {
+    if (costSeq.length < 4) return null;
+    const xs = costSeq.map(c => c.k), ys = costSeq.map(c => c.cost);
+    const mx = mean(xs), my = mean(ys);
+    const den = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+    return den ? xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / den : null;
+  })();
+  const byType = t => {
+    const v = costSeq.filter(c => c.type === t).map(c => c.cost);
+    return v.length ? mean(v) : null;
+  };
+  const costTeaser = byType("ciekawostka"), costNotif = byType("powiadomienie");
   const lagCost = [1,2,3].map(g => {
     const v = rows.filter((r,i)=> rows[i-g] && rows[i-g].distractor && rows[i-g].passage===r.passage && !r.held).map(r=>r.resid);
     return v.length ? mean(v) - mean(base) : null;
@@ -2044,6 +2068,7 @@ function computeMetrics(){
   return {rows, resid, eg, cv, tail, slow, dprime, hits, miss, fa, lat:med(lat),
     cats, offTaskRate, absorption, preMW, preOn, distCost, lagCost,
     clicks, shown, planned:S.notifPlanned, delivered, hoverRate, hoverMs,
+    costSeq, habituation, costTeaser, costNotif,
     tzShown:tz.length, tzOpened, tzOpenRate, tzDwell, tzHover,
     lureQs:lureQs.length, lureRate, lureShareErr, accLure, accClean, lureCost,
     holdN:held.length, holdCommission, holdPresses, holdFirst, holdTolerance,
@@ -2157,6 +2182,8 @@ function renderResults(M){
     </div>
     <div class="metrics">
       ${metricCard("Koszt powiadomienia", (M.distCost===null?"—":(M.distCost>0?"+":"")+fmt(M.distCost,0)), " ms", "Przyrost czasu linii, na której pojawiło się powiadomienie, względem linii spokojnych.", band(M.distCost,150,400,1))}
+      ${metricCard("Habituacja", M.habituation===null?"—":(M.habituation>0?"+":"")+fmt(M.habituation,0), M.habituation===null?"":" ms/ekspozycję", `Nachylenie kosztu kolejnych zakłóceń (${M.costSeq.length} ekspozycji). Ujemne znaczy, że bodziec przestaje działać, gdy okazuje się nieistotny — tak zachowuje się sprawny filtr. Płaskie albo dodatnie znaczy, że każde zakłócenie kosztuje tyle samo co pierwsze.${M.costTeaser!==null&&M.costNotif!==null?` Osobno: ciekawostka ${Math.round(M.costTeaser)} ms, powiadomienie ${Math.round(M.costNotif)} ms.`:""}`, band(M.habituation,-20,40,1))}
+      ${metricCard("Koszt kolejnych zakłóceń", costBars(M.costSeq), "", "Każdy słupek to jedna ekspozycja, w kolejności występowania. Wysokość to odchylenie czasu tej linii od spodziewanego. Opadający ciąg to habituacja; równy albo rosnący — jej brak.", "", 0, true)}
       ${metricCard("Powrót do tempa", M.lagCost.map(v=>v===null?"—":(v>0?"+":"")+Math.round(v)).join(" · "), "", "Reszty na kolejnych trzech liniach po powiadomieniu (ms). Wartości utrzymujące się powyżej zera oznaczają wolny powrót.", "", 0, true)}
       ${metricCard("Wzrok poszedł za powiadomieniem", M.hoverRate===null?"—":Math.round(M.hoverRate*100)+"%", "", `Odsetek z ${M.shown} wyświetlonych powiadomień, nad którymi znalazł się kursor${M.hoverMs===null?"":`, mediana po ${Math.round(M.hoverMs)} ms`}. Orientacja uwagi bez decyzji o kliknięciu — zdarza się o wiele częściej niż kliknięcie, więc lepiej różnicuje.`, band(M.hoverRate,0.2,0.5,1))}
       ${metricCard("Kliknięcia w powiadomienie", M.clicks, "", "Mimo instrukcji, by nie klikać. Bezpośredni wskaźnik zachowania impulsywnego.", band(M.clicks,0,1,1))}
@@ -2250,7 +2277,7 @@ function renderResults(M){
   window.scrollTo(0,0);
 
   const payload = {
-    meta:{version:"0.6", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
+    meta:{version:"0.7", ...S.meta, form:S.form, salience:S.sal.key, sound:S.sal.sound,
           notifSet:S.notifSet, distMode:S.distMode,
           startedAt:new Date().toISOString(),
           ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`,
@@ -2268,6 +2295,8 @@ function renderResults(M){
              preProbeSdRatio:(M.preMW&&M.preOn)?M.preMW/M.preOn:null,
              distractorCost:M.distCost, distractorLagCost:M.lagCost, distractorClicks:M.clicks,
              distractorsPlanned:M.planned, distractorsShown:M.shown, distractorsDelivered:M.delivered,
+             habituationSlope:M.habituation, distractorCostSequence:M.costSeq.map(c=>Math.round(c.cost)),
+             distractorCostTeaser:M.costTeaser, distractorCostNotification:M.costNotif,
              distractorHoverRate:M.hoverRate, distractorHoverMs:M.hoverMs,
              teasersShown:M.tzShown, teasersOpened:M.tzOpened, teaserOpenRate:M.tzOpenRate,
              teaserDwellMs:M.tzDwell, teaserHoverMs:M.tzHover,
@@ -2307,6 +2336,24 @@ function renderResults(M){
   drawTrace(M);
   matchMedia("(prefers-color-scheme:dark)").addEventListener("change", ()=>drawTrace(M));
   addEventListener("resize", ()=>drawTrace(M));
+}
+
+/* Miniaturowy wykres słupkowy kosztu kolejnych zakłóceń, rysowany
+   w SVG, żeby zmieścił się wprost w karcie wskaźnika.                */
+function costBars(seq){
+  if (!seq || !seq.length) return "—";
+  const lim = Math.max(...seq.map(c => Math.abs(c.cost)), 200);
+  const w = 15, gap = 4, h = 34;
+  const bars = seq.map((c, i) => {
+    const bh = Math.max(2, Math.abs(c.cost) / lim * (h / 2));
+    const y = c.cost >= 0 ? h/2 - bh : h/2;
+    const fill = c.cost >= 0 ? "var(--crit)" : "var(--signal)";
+    return `<rect x="${i*(w+gap)}" y="${y}" width="${w}" height="${bh}" fill="${fill}" rx="1"/>`;
+  }).join("");
+  const tw = seq.length * (w + gap);
+  return `<svg viewBox="0 0 ${tw} ${h}" width="${tw}" height="${h}" role="img" ` +
+    `aria-label="koszt kolejnych zakłóceń">` +
+    `<line x1="0" y1="${h/2}" x2="${tw}" y2="${h/2}" stroke="var(--line)" stroke-width="1"/>${bars}</svg>`;
 }
 
 /* Sprostowanie: karmienie badanego nieprawdziwymi twierdzeniami bez

@@ -122,6 +122,24 @@ wśród samych błędnych odpowiedzi. Druga kontroluje ogólny poziom rozumienia
 Trzeci wskaźnik to **koszt kontaminacji**: różnica rozumienia między pytaniami
 z przynętą a pytaniami bez niej, w obrębie tej samej osoby i tej samej sesji.
 
+### Habituacja: co się dzieje przy kolejnych zakłóceniach
+
+Sam średni koszt zakłócenia gubi to, co w rozpraszalności najciekawsze. Sprawny filtr
+uwagowy **słabnie w reagowaniu na bodziec, który okazał się nieistotny** — więc koszt
+kolejnych zakłóceń maleje. Płaski albo rosnący przebieg to zupełnie inny obraz niż sam
+wysoki koszt średni, a uśrednienie robi z nich jedną liczbę.
+
+Panel podaje więc nachylenie kosztu względem numeru ekspozycji plus miniaturowy wykres
+sześciu kolejnych kosztów. Ujemne nachylenie to habituacja; około zera znaczy, że szóste
+zakłócenie kosztuje tyle samo co pierwsze.
+
+W trybie naprzemiennym dochodzi porównanie wewnątrzosobowe: koszt ciekawostki w tekście
+wobec kosztu powiadomienia na obrzeżu ekranu, u tej samej osoby i w tej samej sesji.
+
+Sześć ekspozycji to mało na stabilne nachylenie — traktuj to jako wskazówkę, nie pomiar.
+Wersja z dwunastoma zakłóceniami dałaby sensowną estymację i wymaga wyłącznie zagęszczenia
+harmonogramu.
+
 ### Sprostowanie jest obowiązkowe
 
 Twierdzenia w ciekawostkach są nieprawdziwe. Zostawienie badanego z fałszywą wiedzą nie
@@ -254,6 +272,7 @@ tylko wskazanie, który konstrukt ma tu jakąkolwiek reprezentację pomiarową.
 | Impulsywność refleksyjna, decyzja na zbyt małych danych | **brak** | wymaga osobnego zadania |
 | Kontaminacja pamięci treścią konkurencyjną | przynęty w ciekawostkach, udział przynęt wśród błędów | mocna — bezpośredni dowód zachowaniowy |
 | Dobrowolne porzucenie zadania | odsetek otwartych ciekawostek, czas w nich spędzony | średnia |
+| Habituacja do bodźca nieistotnego | nachylenie kosztu kolejnych zakłóceń | słaba — tylko 6 ekspozycji |
 | Wrażliwość na wzmocnienie | **brak** | wymagałaby bloku z informacją zwrotną |
 | Nadruchliwość | **brak** | wymaga pomiaru ruchu, nie klawiatury |
 

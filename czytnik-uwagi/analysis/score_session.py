@@ -238,6 +238,34 @@ def score(session):
          if i >= g and not l.get("held") and lines[i - g]["distractor"]
          and lines[i - g]["passage"] == l["passage"]]) else None
         for g in (1, 2, 3)]
+    # --- habituacja ---
+    # Uśrednienie kosztu po wszystkich ekspozycjach gubi to, co w
+    # rozpraszalności najciekawsze: sprawny filtr przestaje reagować na
+    # bodziec, który okazał się nieistotny, więc koszt kolejnych zakłóceń
+    # maleje. Płaski albo rosnący przebieg to inny obraz niż sam wysoki
+    # koszt średni.
+    mode = session.get("meta", {}).get("distMode")
+    seq, kinds = [], []
+    for i, l in enumerate(lines):
+        if not l["distractor"] or l.get("held") or res_full[i] is None:
+            continue
+        seq.append(res_full[i] - st.fmean(base))
+        slot = l.get("distSlot", -1)
+        is_tz = bool(l.get("teaser")) and (mode == "ciekawostki" or (mode == "oba" and slot % 2 == 0))
+        kinds.append("ciekawostka" if is_tz else "powiadomienie")
+    out["distractor_cost_sequence"] = [round(v) for v in seq]
+    if len(seq) >= 4:
+        xs = list(range(len(seq)))
+        mx, my = st.fmean(xs), st.fmean(seq)
+        den = sum((x - mx) ** 2 for x in xs)
+        out["habituation_slope"] = (sum((x - mx) * (seq[i] - my) for i, x in enumerate(xs)) / den) if den else None
+    else:
+        out["habituation_slope"] = None
+    for kind, name in (("ciekawostka", "distractor_cost_teaser"),
+                       ("powiadomienie", "distractor_cost_notification")):
+        v = [c for c, k in zip(seq, kinds) if k == kind]
+        out[name] = st.fmean(v) if v else None
+
     out["distractor_clicks"] = sum(e["type"] == "distractor-click" for e in events)
     # Najazd kursorem na powiadomienie: orientacja uwagi bez kliknięcia.
     shown_n = sum(e["type"] == "distractor-on" for e in events)
@@ -328,6 +356,9 @@ LABELS = {
     "probe_on_task": "sondy: przy tekście", "probe_mind_wandering": "sondy: gdzie indziej",
     "probe_task_related": "sondy: przy badaniu", "probe_external": "sondy: bodziec zewn.",
     "probe_blank": "sondy: pustka", "absorption": "wciągnięcie (1-5)",
+    "habituation_slope": "habituacja (ms/eksp.)",
+    "distractor_cost_teaser": "koszt: ciekawostka (ms)",
+    "distractor_cost_notification": "koszt: powiadomienie (ms)",
     "distractors_shown": "powiadomień", "distractors_planned": "zaplanowanych",
     "distractors_delivered": "dostarczonych", "distractor_hover_rate": "najazd kursorem",
     "distractor_hover_ms": "czas do najazdu (ms)",
@@ -366,7 +397,7 @@ def check_against_browser(sess, mine):
              ("hold_commission", "holdCommission"), ("hold_tolerance", "holdTolerance"),
              ("post_error_slowing", "postErrorSlowing"), ("vigilance_slope", "vigilanceSlope"),
              ("lure_rate", "lureRate"), ("teaser_open_rate", "teaserOpenRate"),
-             ("lure_cost", "lureCost")]
+             ("lure_cost", "lureCost"), ("habituation_slope", "habituationSlope")]
     bad = []
     for py, js in pairs:
         a, b_ = mine.get(py), sess.get("metrics", {}).get(js)
